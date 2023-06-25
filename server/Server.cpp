@@ -1,6 +1,18 @@
 #include "Server.h"
 #include <fstream>
+#include <functional>
 #include "Log.h"
+#include "ThreadPool.h"
+
+#include <unistd.h>
+
+void test(int a,int b){
+    while (true)
+    {
+        sleep(1);
+        log_debug(std::to_string(a+b));
+    }
+}
 
 Server::Server(const std::string& fileName){
     system("clear"); // 清屏，方便之后的日志输出
@@ -11,6 +23,13 @@ Server::Server(const std::string& fileName){
         std::stoi(config["logLevel"]),
         (config["isAsync"]=="true"?true:false)
     ); // 初始化日志系统
+
+    ThreadPool::instance()->init(std::stoi(config["threadNum"])); // 初始化线程池
+    ThreadPool::instance()->addTask(std::bind(test,0,1));
+    ThreadPool::instance()->addTask(std::bind(test,0,2));
+    ThreadPool::instance()->addTask(std::bind(test,0,3));
+    ThreadPool::instance()->addTask(std::bind(test,0,4));
+    
     log_info("初始化服务器配置...");
     
 }

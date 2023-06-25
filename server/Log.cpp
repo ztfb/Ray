@@ -24,7 +24,7 @@ void Log::init(bool isOpenLog,int logLevel,bool isAsync){
     this->isAsync=isAsync;
     if(this->isOpenLog&&this->isAsync){
         // 如果开启了日志系统并且是异步的，则需要创建一个子线程负责写日志
-        std::thread subThread([](){
+        std::thread([](){
             while(true){
                 std::unique_lock<std::mutex> lock(Log::instance()->queLock); // 多线程操作STL需要加锁
                 if(!Log::instance()->logQue.empty()){
@@ -34,31 +34,30 @@ void Log::init(bool isOpenLog,int logLevel,bool isAsync){
                     Log::instance()->condvar.wait(lock); // 线程需要重新加锁判断条件是否满足，故需要配合mutex使用
                 }
             }
-        });
-        subThread.detach(); // 设置线程分离
+        }).detach(); // 设置线程分离
     }
 }
 
 void log_base(const std::string& log,int level1,const std::string& level2){
     if(Log::instance()->open()){ // 日志系统打开的情况下才能进行输出
         if(Log::instance()->level()<=level1){ // 当前使用的日志级别不超过level1，level1级别的日志才能输出
-            std::string log;
+            std::string message;
             time_t now;
             time(&now); //获取1970年1月1日0点0分0秒到现在经过的秒数
             tm *p=localtime(&now); //将秒数转换为本地时间
-            log.append(std::to_string(p->tm_year+1900)+"-"+std::to_string(p->tm_mon+1)+"-"+std::to_string(p->tm_mday)+" "
+            message.append(std::to_string(p->tm_year+1900)+"-"+std::to_string(p->tm_mon+1)+"-"+std::to_string(p->tm_mday)+" "
                             +std::to_string(p->tm_hour)+":"+std::to_string(p->tm_min)+":"+std::to_string(p->tm_sec));
-            log.append(" ["+level2+"] ");
-            log.append(log);
+            message.append(" ["+level2+"] ");
+            message.append(log);
             if(Log::instance()->async()){
                 // 异步情况下，将日志加入到日志队列中
                 std::unique_lock<std::mutex> lock(Log::instance()->lock()); // 多线程操作STL需要加锁
-                Log::instance()->addLog(log);
+                Log::instance()->addLog(message);
                 // 如果有线程在等待，则通知它可以解除等待（如果没有线程在等待，该方法相当于没有调用）
                 Log::instance()->cond().notify_one();
             }else{
                 // 同步情况下，直接输出日志
-                std::cout<<log<<std::endl;
+                std::cout<<message<<std::endl;
             }
         }
     }

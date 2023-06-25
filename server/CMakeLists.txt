@@ -5,7 +5,7 @@ project(server)
 #查找依赖库
 find_package(Threads REQUIRED)
 
-add_executable(${CMAKE_PROJECT_NAME} main.cpp Server.cpp Log.cpp)
+add_executable(${CMAKE_PROJECT_NAME} main.cpp Server.cpp Log.cpp ThreadPool.cpp)
 
 #引入依赖库
 target_link_libraries(${CMAKE_PROJECT_NAME} Threads::Threads)
