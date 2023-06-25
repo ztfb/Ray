@@ -9,8 +9,8 @@
 class Buffer{
 public:
     Buffer(int size=1024);
-    ssize_t readFromFile(int fd); // 从文件fd中读数据到写缓冲区
-    ssize_t writeToFile(int fd); // 从读缓冲区向文件fd中写数据
+    ssize_t readFromFile(int fd); // 从文件fd中读数据到写空间
+    ssize_t writeToFile(int fd); // 从读空间向文件fd中写数据
 private:
     std::vector<char> buffer; // 缓冲区（本质是字节序列）
     // 0～readPos：暂时没有被使用的空间
