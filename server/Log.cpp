@@ -9,7 +9,7 @@ std::shared_ptr<Log> Log::instance(){
     // 懒汉模式
     // 使用双重检查保证线程安全
     if(log==nullptr){
-        std::lock_guard<std::mutex> lock(mutex); // 访问临界区之前需要加锁
+        std::unique_lock<std::mutex> lock(mutex); // 访问临界区之前需要加锁
         if(log==nullptr){
             log=std::shared_ptr<Log>(new Log());
         }
@@ -22,6 +22,21 @@ void Log::init(bool isOpenLog,int logLevel,bool isAsync){
     // debug:1 info:2 warn:3 error:4
     this->logLevel=logLevel;
     this->isAsync=isAsync;
+    if(this->isOpenLog&&this->isAsync){
+        // 如果开启了日志系统并且是异步的，则需要创建一个子线程负责写日志
+        std::thread subThread([](){
+            while(true){
+                std::unique_lock<std::mutex> lock(Log::instance()->queLock); // 多线程操作STL需要加锁
+                if(!Log::instance()->logQue.empty()){
+                    std::cout<<Log::instance()->logQue.front()<<std::endl;
+                    Log::instance()->logQue.pop();
+                }else{
+                    Log::instance()->condvar.wait(lock); // 线程需要重新加锁判断条件是否满足，故需要配合mutex使用
+                }
+            }
+        });
+        subThread.detach(); // 设置线程分离
+    }
 }
 
 void log_base(const std::string& log,int level1,const std::string& level2){
@@ -37,7 +52,10 @@ void log_base(const std::string& log,int level1,const std::string& level2){
             log.append(log);
             if(Log::instance()->async()){
                 // 异步情况下，将日志加入到日志队列中
+                std::unique_lock<std::mutex> lock(Log::instance()->lock()); // 多线程操作STL需要加锁
                 Log::instance()->addLog(log);
+                // 如果有线程在等待，则通知它可以解除等待（如果没有线程在等待，该方法相当于没有调用）
+                Log::instance()->cond().notify_one();
             }else{
                 // 同步情况下，直接输出日志
                 std::cout<<log<<std::endl;

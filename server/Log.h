@@ -5,6 +5,8 @@
 #include <mutex>
 #include <string>
 #include <queue>
+#include <thread>
+#include <condition_variable>
 
 class Log{
 public:
@@ -14,6 +16,10 @@ public:
     bool open(){return isOpenLog;}
     int level(){return logLevel;}
     bool async(){return isAsync;}
+    int currSize(){return logQue.size();}
+    std::mutex& lock(){return queLock;}
+    std::condition_variable& cond(){return condvar;}
+
     void addLog(const std::string& log){Log::instance()->logQue.push(log);} // 将日志信息添加到日志队列中
 
     Log(const Log&) = delete; // 禁用拷贝构造函数
@@ -24,6 +30,8 @@ private:
     int logLevel; // 当前日志级别
     bool isAsync; // 是否使用异步输出
     std::queue<std::string> logQue; // 日志队列
+    std::mutex queLock; // 队列互斥锁
+    std::condition_variable condvar; // 条件变量
 };
 
 void log_debug(const std::string& log);
