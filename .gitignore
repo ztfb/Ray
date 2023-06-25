@@ -1,2 +1,5 @@
+# 忽略配置文件
+.vscode
+.idea
 # 忽略server的构建文件
 /server/build
