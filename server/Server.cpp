@@ -8,9 +8,9 @@
 #include <unistd.h>
 
 void test(int a,int b){
+    sleep(3);
     while (true)
     {
-        sleep(1);
         log_debug(std::to_string(a+b));
     }
 }
@@ -28,8 +28,6 @@ Server::Server(const std::string& fileName){
     ThreadPool::instance()->init(std::stoi(config["threadNum"])); // 初始化线程池
     ThreadPool::instance()->addTask(std::bind(test,0,1));
     ThreadPool::instance()->addTask(std::bind(test,0,2));
-    ThreadPool::instance()->addTask(std::bind(test,0,3));
-    ThreadPool::instance()->addTask(std::bind(test,0,4));
     
     // 初始化MySQL连接池
     MySQLPool::instance()->init(config["mysqlHost"],std::stoi(config["mysqlPort"]),config["mysqlUsername"],
@@ -38,17 +36,35 @@ Server::Server(const std::string& fileName){
     // 测试
     MYSQL *conn=MySQLPool::instance()->getConn();
     const char * sql="insert into t1 values(4)";
-    mysql_query(conn,sql);
-    MySQLPool::instance()->freeConn(conn);
-    
+    if(conn!=nullptr){
+        mysql_query(conn,sql);
+        MySQLPool::instance()->freeConn(conn);
+    }
+
+    // Buffer测试
+    int fd1 = open("./file1",O_RDONLY,0600);
+    int fd2 = open("./file2",O_WRONLY,0600);
+    int fd3 = open("./file3",O_RDONLY,0600);
+    int fd4 = open("./file4",O_WRONLY,0600);
+    Buffer buffer;
+    log_debug(std::to_string(buffer.readFromFile(fd1)));
+    log_debug(std::to_string(buffer.writeToFile(fd2)));
+    log_debug(std::to_string(buffer.readFromFile(fd3)));
+    log_debug(std::to_string(buffer.writeToFile(fd4)));
+    close(fd1);
+    close(fd2);
+    close(fd3);
+    close(fd4);
+
     log_info("初始化服务器配置...");
     
 }
 
 void Server::start(){
     log_info("服务器启动成功...");
+    sleep(3);
     while(true){
-        
+        log_debug("3");
     }
 }
 

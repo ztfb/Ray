@@ -20,14 +20,13 @@ void MySQLPool::init(const std::string& host,int port,const std::string& usernam
                 const std::string& dbname,int connNum)
 {
     for(int i=0;i<connNum;i++){
-        MYSQL* mysql=nullptr;
-        mysql=mysql_init(mysql);
-        if(!mysql){
+        MYSQL* mysql=mysql_init(NULL);
+        if(mysql==nullptr){
             log_error("MySQL初始化失败...");
             return ;
         }
         mysql=mysql_real_connect(mysql,host.c_str(),username.c_str(),password.c_str(),dbname.c_str(),port,NULL,0);
-        if(!mysql){
+        if(mysql==nullptr){
             log_warn("MySQL连接失败...");
             return ;
         }
