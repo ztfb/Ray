@@ -2,6 +2,7 @@
 #include "Log.h"
 #include "ThreadPool.h"
 #include "Buffer.h"
+#include "MySQLPool.h"
 #include <fstream>
 #include <functional>
 #include <unistd.h>
@@ -29,6 +30,16 @@ Server::Server(const std::string& fileName){
     ThreadPool::instance()->addTask(std::bind(test,0,2));
     ThreadPool::instance()->addTask(std::bind(test,0,3));
     ThreadPool::instance()->addTask(std::bind(test,0,4));
+    
+    // 初始化MySQL连接池
+    MySQLPool::instance()->init(config["mysqlHost"],std::stoi(config["mysqlPort"]),config["mysqlUsername"],
+                                config["mysqlPassword"],config["mysqlDB"],std::stoi(config["sqlconnNum"]));
+    
+    // 测试
+    MYSQL *conn=MySQLPool::instance()->getConn();
+    const char * sql="insert into t1 values(4)";
+    mysql_query(conn,sql);
+    MySQLPool::instance()->freeConn(conn);
     
     log_info("初始化服务器配置...");
     
