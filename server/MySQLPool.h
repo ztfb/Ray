@@ -19,6 +19,7 @@ public:
     
     MySQLPool(const MySQLPool&) = delete; // 禁用拷贝构造函数
     MySQLPool& operator=(const MySQLPool&) = delete; // 禁用赋值运算符
+    ~MySQLPool();
 private:
     MySQLPool() = default; // 禁用外部构造
     std::mutex poolLock; // 连接池互斥锁

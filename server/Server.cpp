@@ -3,6 +3,7 @@
 #include "ThreadPool.h"
 #include "Buffer.h"
 #include "MySQLPool.h"
+#include "Epoll.h"
 #include <fstream>
 #include <functional>
 #include <unistd.h>
@@ -56,6 +57,9 @@ Server::Server(const std::string& fileName){
     close(fd3);
     close(fd4);
 
+    // Epoll初始化
+    Epoll::instance()->init(1024);
+    
     log_info("初始化服务器配置...");
     
 }

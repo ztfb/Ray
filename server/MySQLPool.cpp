@@ -58,8 +58,14 @@ MYSQL* MySQLPool::getConn(){
     connQue.pop();
     return mysql;
 }
+
 void MySQLPool::freeConn(MYSQL *mysql){
     // 将一个用完的连接重新添加到队列中
     std::unique_lock<std::mutex> lock(poolLock);
     connQue.push(mysql); // 将连接重新加入连接队列
+}
+
+MySQLPool::~MySQLPool(){
+    // 析构对象时要释放系统资源
+    close();
 }
