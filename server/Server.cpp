@@ -4,6 +4,7 @@
 #include "Buffer.h"
 #include "MySQLPool.h"
 #include "Epoll.h"
+#include "Timer.h"
 #include <fstream>
 #include <functional>
 #include <unistd.h>

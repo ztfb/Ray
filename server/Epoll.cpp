@@ -60,7 +60,7 @@ int Epoll::getFd(int index){
 }
 
 int Epoll::getEvents(int index){
-    return events[i].events;
+    return events[index].events;
 }
 
 Epoll::~Epoll(){
