@@ -62,8 +62,8 @@ Python脚本：
 -sql				# C++编写的MySQL函数库
  --CMakeLists.txt	# CMake
  --README.md		# 概要说明文件
- --sqllib.cpp		# C++编写的MySQL库（源文件）
- --sqllib.so		# C++编写的MySQL库（动态库，由boost导出，可用Python调用）
+ --mysqllib.cpp		# C++编写的MySQL库（源文件）
+ --mysqllib.so		# C++编写的MySQL库（动态库，由boost导出，可用Python调用）
 -ui					#
 -.gitignore			# git忽略
 -LICENSE			# Apache2.0 开源许可
