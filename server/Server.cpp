@@ -5,71 +5,53 @@
 #include "MySQLPool.h"
 #include "Epoll.h"
 #include "Timer.h"
+#include "RunPython.h"
 #include <fstream>
 #include <functional>
 #include <unistd.h>
 
-void test(int a,int b){
-    sleep(3);
-    while (true)
-    {
-        log_debug(std::to_string(a+b));
-    }
-}
-
 Server::Server(const std::string& fileName){
     system("clear"); // 清屏，方便之后的日志输出
-
     parseIni(fileName); // 解析配置文件
+
+    // 初始化日志系统
     Log::instance()->init(
         (config["isOpenLog"]=="true"?true:false),
         std::stoi(config["logLevel"]),
         (config["isAsync"]=="true"?true:false)
-    ); // 初始化日志系统
+    );
 
     ThreadPool::instance()->init(std::stoi(config["threadNum"])); // 初始化线程池
-    ThreadPool::instance()->addTask(std::bind(test,0,1));
-    ThreadPool::instance()->addTask(std::bind(test,0,2));
     
     // 初始化MySQL连接池
     MySQLPool::instance()->init(config["mysqlHost"],std::stoi(config["mysqlPort"]),config["mysqlUsername"],
                                 config["mysqlPassword"],config["mysqlDB"],std::stoi(config["sqlconnNum"]));
-    
-    // 测试
-    MYSQL *conn=MySQLPool::instance()->getConn();
-    const char * sql="insert into t1 values(4)";
-    if(conn!=nullptr){
-        mysql_query(conn,sql);
-        MySQLPool::instance()->freeConn(conn);
-    }
 
-    // Buffer测试
-    int fd1 = open("./file1",O_RDONLY,0600);
-    int fd2 = open("./file2",O_WRONLY,0600);
-    int fd3 = open("./file3",O_RDONLY,0600);
-    int fd4 = open("./file4",O_WRONLY,0600);
-    Buffer buffer;
-    log_debug(std::to_string(buffer.readFromFile(fd1)));
-    log_debug(std::to_string(buffer.writeToFile(fd2)));
-    log_debug(std::to_string(buffer.readFromFile(fd3)));
-    log_debug(std::to_string(buffer.writeToFile(fd4)));
-    close(fd1);
-    close(fd2);
-    close(fd3);
-    close(fd4);
-
-    // Epoll初始化
-    Epoll::instance()->init(1024);
+    Epoll::instance()->init(1024); // Epoll初始
     
+    RunPython::instance()->init("./temp-script"); // 初始化python运行器
+    RunPython::instance()->loadModule("hello");
+    RunPython::instance()->loadFunction("hello","hi");
+    RunPython::instance()->loadFunction("hello","hip1");
+    RunPython::instance()->loadFunction("hello","hip2");
+    char *ret;
+    PyObject *args=RunPython::instance()->initArgs(1);
+    RunPython::instance()->buildArgs(args,0,"tom");
+    // 调用无参无返回值函数
+    // RunPython::instance()->callFunc("hello","hi",NULL,ret);
+    // 调用有参无返回值函数
+    // RunPython::instance()->callFunc("hello","hip1",args,ret);
+    // 调用有参有返回值函数
+    RunPython::instance()->callFunc("hello","hip2",args,ret);
+    log_debug(std::string(ret));
+
     log_info("初始化服务器配置...");
     
 }
 
 void Server::start(){
     log_info("服务器启动成功...");
-    sleep(3);
     while(true){
-        log_debug("3");
     }
 }
 
