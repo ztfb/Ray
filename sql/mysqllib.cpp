@@ -55,7 +55,7 @@ std::string getAllResult(long data){
 	allResult.push_back(']');
 	return allResult;
 }
-BOOST_PYTHON_MODULE(sqllib)
+BOOST_PYTHON_MODULE(mysqllib)
 {
 	using namespace boost::python;
 	def("update",update);

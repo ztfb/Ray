@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.2)
 
-project(sqllib)
+project(mysqllib)
 
-add_library(sqllib_static STATIC sqllib.cpp)
+add_library(mysqllib_static STATIC mysqllib.cpp)
 
-set_target_properties(sqllib_static PROPERTIES  OUTPUT_NAME "sqllib")
+set_target_properties(mysqllib_static PROPERTIES  OUTPUT_NAME "mysqllib")
 
-add_library(sqllib SHARED sqllib.cpp)
+add_library(mysqllib SHARED mysqllib.cpp)
 
 include_directories(../Python/include ../MySQL/include)
 

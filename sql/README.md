@@ -1,6 +1,6 @@
 # C++ SQL库
 
-`sqllib.so`是C++操作MySQL数据库的函数库，该库提供了四个函数供外部程序调用：
+`mysqllib.so`是C++操作MySQL数据库的函数库，该库提供了四个函数供外部程序调用：
 
 update：根据数据库连接`MYSQK*`和SQL语句执行增删改操作，并返回操作结果，用于更新数据库。
 
@@ -33,9 +33,9 @@ import 模块名
 # 示例
 # conn是从C++主程序中传递过来的MySQL连接
 def query(conn):
-    import sqllib
+    import mysqllib
     sql="insert into test values(1,2,3)"
-    result=sqllib.update(conn,sql)
+    result=mysqllib.update(conn,sql)
     if result==True:
         print("执行成功")
     else:
