@@ -26,24 +26,24 @@ Server::Server(const std::string& fileName){
     // 初始化MySQL连接池
     MySQLPool::instance()->init(config["mysqlHost"],std::stoi(config["mysqlPort"]),config["mysqlUsername"],
                                 config["mysqlPassword"],config["mysqlDB"],std::stoi(config["sqlconnNum"]));
+    
+    // 获取一个可用的连接
+    MYSQL *mysql=NULL;
+    mysql=MySQLPool::instance()->getConn();
+    while(mysql==NULL){
+        mysql=MySQLPool::instance()->getConn();
+    }
 
     Epoll::instance()->init(1024); // Epoll初始
-    
+
     RunPython::instance()->init("./temp-script"); // 初始化python运行器
-    RunPython::instance()->loadModule("hello");
-    RunPython::instance()->loadFunction("hello","hi");
-    RunPython::instance()->loadFunction("hello","hip1");
-    RunPython::instance()->loadFunction("hello","hip2");
+    RunPython::instance()->loadModule("pmysql");
+    RunPython::instance()->loadFunction("pmysql","query");
     char *ret;
     PyObject *args=RunPython::instance()->initArgs(1);
-    RunPython::instance()->buildArgs(args,0,"tom");
-    // 调用无参无返回值函数
-    // RunPython::instance()->callFunc("hello","hi",NULL,ret);
-    // 调用有参无返回值函数
-    // RunPython::instance()->callFunc("hello","hip1",args,ret);
-    // 调用有参有返回值函数
-    RunPython::instance()->callFunc("hello","hip2",args,ret);
-    log_debug(std::string(ret));
+    // 无论在32位机还是64位机上，指针长度和long保持一致，因此用long传递指针即可
+    RunPython::instance()->buildArgs(args,0,(long)(mysql));
+    RunPython::instance()->callFunc("pmysql","query",args,ret);
 
     log_info("初始化服务器配置...");
     
