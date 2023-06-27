@@ -27,7 +27,7 @@ public:
 	    else if(std::is_pointer<T>::value)type="s";
 	    PyTuple_SetItem(args,i,Py_BuildValue(type.c_str(), value));
     }
-    // 传入一个T类型的参数ret，用于获得返回值。不需要返回值时，传入NULL
+    // 传入一个T类型的参数ret，用于获得返回值。不需要返回值时，传入的ret无用
     template<typename T>
     void callFunc(const std::string& moduleName,const std::string& funcName,PyObject* args,T& ret){
         // 运行函数，并获取返回值

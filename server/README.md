@@ -50,9 +50,36 @@ server使用一个轻量级的简易数据库连接池。数据库连接池的�
 
 对于C++而言，连接MySQL需要先安装MySQL及其开发环境，还需要包含头文件`#include <mysql/mysql.g>`，并且在链接时需要用到`mysqlclient`库。
 
+`mysql.h`可以在目录`usr/include/mysql`中找到；相关的库文件可以在`usr/lib/x86_64-linux_gun`中找到。
+
+项目中的MySQL文件夹是连接MySQL所需的头文件和库文件。
+
 ## 定时器
 
 server使用的是一个基于小根堆的定时器，定时器中每个节点保存了该节点的id，到期时间，到期时的回调函数。小根堆的堆顶是到期时间最近的节点。小根堆底层使用vector实现，并且使用了一个map记录节点的id到节点在vector中索引的映射，方便根据节点id快速确定节点的位置。由于小根堆底层是使用vector实现的，因此需要自行实现小根堆中节点位置的调整，以及取出小根堆堆顶的代码。
 
 定时器总共提供了四个函数可供外部程序调用：更新一个结点的到期时间、添加一个结点、获取距离最近的到期时间的毫秒数、根据id删除一个制定的节点。
 
+## Python脚本引擎
+
+如果想在C++中调用Python代码，则需要包含Python提供的头文件和相关的库。如果Linux系统下已经安装了相关的Python解释器，则在Python解释器的`include`目录下可以找到相关的头文件（`Python.h`等）；在Python解释器的`lib`目录以及`lib/python3.8/config-3.8-x86_64-linux-gun`（这里使用的Python版本为3.8）目录下可以找到相关的库文件（静态库.a文件和动态库.so文件）。
+
+在Python脚本引擎中，主要提供了五类方法供外部程序调用：初始化Python解释器、导入Python模块、导入Python方法、构造Python参数、调用Python函数。
+
+初始化解释器时需要指定Python脚本所在目录、导入模块时要保证Python文件没有语法错误，否则无法导入、Python的传入参数列表是以元组形式构建的，参数列表中各个参数的值通过一个函数模板指定、调用Python函数时，传入的参数ret用来保存函数的返回值。
+
+项目中Python文件夹下是C++调用Python脚本所必须的头文件和库文件，其相当于一个简化版的python解释器。以下是安装Python解释器的流程：
+
+```
+1.去Python官网：https://www.python.org 下载Python-3.8.6.tgz（当然也可以下载其他版本，但是该版本是我验证过，可以成功的）
+2.使用命令tar -zxvf Python-3.8.6.tgz 打开压缩包
+3.安装编译Python所需依赖：apt-get install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gcc make
+4.进入 Python-3.8.6 文件夹中，执行：./configure --prefix=/usr/local/python3.8 --enable-shared  --enable-optimizations --enable-static
+--prefix 指明了安装Python解释器的位置
+--enable-optimizations 是优化选项，加上这个选项编译后，性能有 10% 左右的优化
+--enable-static：生成静态链接库
+--enable-shared：生成动态链接库
+5.进行编译：make
+6.进行安装：sudo make altinstall
+7./usr/local/python3.8/include下有所需的头文件；/usr/local/python3.8/lib和/usr/local/python3.8/libpython3.8/config-3.8-x86_64-linux-gnu有所需的库文件
+```
