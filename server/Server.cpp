@@ -37,13 +37,14 @@ Server::Server(const std::string& fileName){
     Epoll::instance()->init(1024); // Epoll初始
 
     RunPython::instance()->init("./temp-script"); // 初始化python运行器
-    RunPython::instance()->loadModule("pmysql");
-    RunPython::instance()->loadFunction("pmysql","query");
+    RunPython::instance()->loadModule("pmysql_test");
+    RunPython::instance()->loadFunction("pmysql_test","test");
     char *ret;
-    PyObject *args=RunPython::instance()->initArgs(1);
+    PyObject *args=RunPython::instance()->initArgs(2);
     // 无论在32位机还是64位机上，指针长度和long保持一致，因此用long传递指针即可
     RunPython::instance()->buildArgs(args,0,(long)(mysql));
-    RunPython::instance()->callFunc("pmysql","query",args,ret);
+    RunPython::instance()->buildArgs(args,1,3);
+    RunPython::instance()->callFunc("pmysql_test","test",args,ret);
 
     log_info("初始化服务器配置...");
     
