@@ -1,4 +1,4 @@
-# C++ SQL库
+# C++ MySQL库
 
 `mysqllib.so`是C++操作MySQL数据库的函数库，该库提供了四个函数供外部程序调用：
 
@@ -10,7 +10,7 @@ getResult：取出查询结果集中的一条查询结果，将其封装成JSON�
 
 getAllResult：取出查询结果集中的所有查询结果，将其封装成JSON数组。
 
-由于该C++ SQL库是要提供给Python脚本调用的，因此需要特殊的导出方式。这里使用的是`boost`。
+由于该C++ MySQL库是要提供给Python脚本调用的，因此需要特殊的导出方式。这里使用的是`boost`。
 
 ```shell
 boost的安装命令：
