@@ -12,7 +12,7 @@ public:
     void init(int maxSize=1024); // 初始化函数
 
     bool addFd(int fd,uint32_t events); // 添加文件描述符
-    bool delFd(int fd,uint32_t events); // 删除文件描述符
+    bool delFd(int fd); // 删除文件描述符
     bool modFd(int fd,uint32_t events); // 修改文件描述符
     int wait(int timeoutMS=-1); // 监听文件描述符的就绪，timeoutMS为超时时间
     int getFd(int index); // 获取第i个就绪的文件描述符的fd

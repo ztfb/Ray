@@ -1,4 +1,5 @@
 #include "Log.h"
+#include <unistd.h>
 #include <iostream>
 #include <ctime>
 
@@ -48,6 +49,7 @@ void log_base(const std::string& log,int level1,const std::string& level2){
             tm *p=localtime(&now); //将秒数转换为本地时间
             message.append(std::to_string(p->tm_year+1900)+"-"+std::to_string(p->tm_mon+1)+"-"+std::to_string(p->tm_mday)+" "
                             +std::to_string(p->tm_hour)+":"+std::to_string(p->tm_min)+":"+std::to_string(p->tm_sec));
+            message.append(" [tid: "+std::to_string(gettid())+"]");
             message.append(" ["+level2+"] ");
             message.append(log);
             if(Log::instance()->async()){

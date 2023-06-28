@@ -25,7 +25,7 @@ ssize_t Buffer::readFromFile(int fd){
     // 使用分散读将数据读到两个缓存中
     ssize_t len = readv(fd, iov, 2);
     // 读取失败返回-1
-    if(len<0)return len;
+    if(len<=0)return len;
     // 读出的数据总长小于缓冲区buffer可写空间的长度
     if(len<=writableBytes()){
         writePos+=len;
@@ -53,7 +53,7 @@ ssize_t Buffer::writeToFile(int fd){
     // 第一个可读的字节的地址是(&buffer[0])+readPos；可读字节总数为readableBytes()
     int len=write(fd,(&buffer[0])+readPos,readableBytes());
     // 返回值len是实际写入的字节数，写入失败时返回-1
-    if(len<0)return len;
+    if(len<=0)return len;
     readPos+=len; // 写入成功时需要移动读指针
     return len;
 }

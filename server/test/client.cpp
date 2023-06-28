@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <iostream>
 
 int main(){
@@ -14,8 +14,8 @@ int main(){
     connect(fd,(struct sockaddr*)(&saddr),sizeof(saddr));
     char buf[2048];
     while(true){
-        const char *data=std::string("I am client:"+std::to_string(getpid())).c_str();
-        write(fd,data,strlen(data)+1);
+        std::string data="I am client: "+std::to_string(getpid());
+        write(fd,data.c_str(),data.size()+1);
         int len=read(fd,buf,sizeof(buf));
         if(len==-1){
             std::cout<<"read调用失败"<<std::endl;

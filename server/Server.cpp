@@ -12,9 +12,10 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
-#include <iostream>
-int cfd;
+
 Server::Server(const std::string& fileName){
+    listenEvent=EPOLLRDHUP; // 需要epoll检测对端关闭事件
+    connEvent=EPOLLONESHOT|EPOLLRDHUP|EPOLLET; //  保证只触发一次；需要epoll检测对端关闭事件；使用边沿触发模式
     system("clear"); // 清屏，方便之后的日志输出
     parseIni(fileName); // 解析配置文件
 
@@ -40,18 +41,12 @@ Server::Server(const std::string& fileName){
         log_error("套接字初始化失败...");
         isSuccess=false;
     }else log_info("套接字初始化成功...");
-
-    // 初始化客户端套接字（仅仅用于测试）
-    // 把cfd定义为全局变量
-    /*struct sockaddr_in caddr;
-    int len=sizeof(caddr);
-    cfd=accept(listenFd,(struct sockaddr *)(&caddr),(socklen_t*)&len);*/
     // 注意：python运行器只需要载入python路由脚本（prouter），并且给它传递若干参数：
     // 一个是MYSQL连接（在调用这个路由函数之前必须获取一个mysql连接）
     // 其他的是HTTP请求相关字符串
     // 该路由函数返回值是HTTP响应相关的字符串（主要是响应头和JSON响应体）
     // 获取一个可用的连接
-    MYSQL *mysql=NULL;
+    /*MYSQL *mysql=NULL;
     mysql=MySQLPool::instance()->getConn();
     while(mysql==NULL){
         mysql=MySQLPool::instance()->getConn();
@@ -64,7 +59,7 @@ Server::Server(const std::string& fileName){
     // 无论在32位机还是64位机上，指针长度和long保持一致，因此用long传递指针即可
     RunPython::instance()->buildArgs(args,0,(long)(mysql));
     RunPython::instance()->buildArgs(args,1,0);
-    RunPython::instance()->callFunc("pmysql_test","test",args,ret);
+    RunPython::instance()->callFunc("pmysql_test","test",args,ret);*/
 
     log_info("服务器配置初始化完成...");
     
@@ -77,7 +72,53 @@ void Server::start(){
     }
     log_info("Ray服务器启动...");
 
-    // 以下代码仅仅用于测试
+    while(true){
+        int timeoutMS=Timer::instance()->getExpiration(); // 初始时这个函数将返回-1
+        // timeoutMS==-1时，如果没有就绪事件，wait将阻塞
+        int eventCount=Epoll::instance()->wait(timeoutMS);
+        for(int i=0;i<eventCount;i++){
+            // 处理epoll通知的就绪事件
+            int fd=Epoll::instance()->getFd(i); // 获得第i个就绪事件对应的文件描述符
+            uint32_t events=Epoll::instance()->getEvents(i); // 获取第i个就绪事件对应的事件类型
+            if(fd==listenFd){
+                // 监听套接字就绪，说明有新的客户端接入
+                // listenFd是水平触发模式，无需循环检测
+                struct sockaddr_in caddr;
+                socklen_t len = sizeof(caddr);
+                int cfd = accept(listenFd, (struct sockaddr *)&caddr, &len);
+                connections.emplace((cfd,Connection(cfd,caddr))); // 创建一个连接
+                log_info(connections[cfd].getIP()+":"+std::to_string(connections[cfd].getPort())+" 接入...");
+                // 将cfd添加到epoll的监听文件集中
+                Epoll::instance()->addFd(cfd,EPOLLIN|connEvent);
+                setNonBlock(cfd); // 由于使用边沿触发模式，因此必须设置文件非阻塞
+                // 将该连接添加到定时器中
+                Timer::instance()->add(cfd,std::stoi(config["timeoutMS"]),
+                std::bind(&Server::disconnect,this,&connections[cfd]));
+            }
+            // 负责和客户端通信的通信套接字就绪
+            else if(events&(EPOLLRDHUP|EPOLLHUP|EPOLLERR)){
+                // 对端出现异常，关闭该连接
+                disconnect(&connections[fd]);
+            }
+            else if(events&EPOLLIN){
+                // 读事件就绪，从文件描述符中将数据读出
+                // 节点活跃，应当调整节点的到期时间
+                Timer::instance()->adjust(fd,std::stoi(config["timeoutMS"]));
+                ThreadPool::instance()->addTask(std::bind(
+                    &Server::readEvent,this,&connections[fd]
+                ));
+            }
+            else if(events&EPOLLOUT){
+                // 写事件就绪，向文件描述法中写数据
+                // 节点活跃，应当调整节点的到期时间
+                Timer::instance()->adjust(fd,std::stoi(config["timeoutMS"]));
+                ThreadPool::instance()->addTask(std::bind(
+                    &Server::writeEvent,this,&connections[fd]
+                ));
+            }else log_warn("未知事件...");
+        }
+    }
+    /*// 以下代码仅仅用于测试
     char buf[2048];
     while(true){
         int num=read(cfd,buf,sizeof(buf)); // 阻塞函数
@@ -88,12 +129,12 @@ void Server::start(){
             log_warn("客户端断开连接...");
             break;
         }else if(num>0){
-            std::cout<<buf<<std::endl;
+            log_debug(buf);
         }
         const char *data="i had received!";
         write(cfd,data,strlen(data)+1);
     }
-    close(cfd);
+    close(cfd);*/
 }
 
 Server::~Server(){
@@ -142,24 +183,45 @@ bool Server::initSocket(){
         log_error("监听套接字创建失败...");
         return false; // 创建套接字失败
     }
-
+    // 构造地址和端口
     struct sockaddr_in saddr;
     saddr.sin_family=AF_INET;
     // 网络字节序（在网络中传输的数据的字节序）是大端序，主机字节序不一定是大端序，因此要进行转换
     saddr.sin_addr.s_addr=htonl(INADDR_ANY); // 绑定本机所有地址
     saddr.sin_port=htons(std::stoi(config["port"])); // 将port从主机字节序转为网络字节序
-    int ret=bind(listenFd,(struct sockaddr*)(&saddr),sizeof(saddr));
+    // 设置优雅关闭
+    struct linger optLinger={0};
+    optLinger.l_onoff=1;
+    optLinger.l_linger=1;
+    int ret = setsockopt(listenFd, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
+    if(ret==-1){
+        log_error("设置优雅关闭失败...");
+        return false;
+    }
+    // 设置端口复用
+    int optval = 1;
+    ret = setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int));
+    if(ret==-1){
+        log_error("设置端口复用失败...");
+        return false;
+    }
+    // 绑定地址和端口
+    ret=bind(listenFd,(struct sockaddr*)(&saddr),sizeof(saddr));
     if(ret==-1){
         log_error("监听套接字绑定失败...");
         return false;
     }
-
+    // 监听套接字
     ret=listen(listenFd,8); // 监听套接字
     if(ret==-1){
         log_error("监听套接字失败...");
         return false;
     }
-
+    // 还需要监听【listenFd】上的读事件
+    // 一旦有客户端通过三次握手建立连接，就会触发listenFd上的可读事件
+    Epoll::instance()->addFd(listenFd,listenEvent|EPOLLIN);
+    // 设置监听套接字为非阻塞
+    setNonBlock(listenFd);
     return true;
 }
 
@@ -167,4 +229,27 @@ void Server::setNonBlock(int fd){
     int flag=fcntl(fd, F_GETFD);
     flag|=O_NONBLOCK;
     fcntl(fd,F_SETFL,flag);
+}
+
+void Server::disconnect(Connection* conn){
+    log_info(conn->getIP()+":"+std::to_string(conn->getPort())+" 离开...");
+    Epoll::instance()->delFd(conn->getFd());
+    conn->disconnect();
+}
+
+void Server::readEvent(Connection* conn){
+    int ret=conn->readFromFile();
+    if(ret==0){ // 客户端端开连接
+        disconnect(conn);
+        return ;
+    }
+    process(conn);
+}
+
+void Server::process(Connection* conn){
+
+}
+
+void Server::writeEvent(Connection* conn){
+
 }

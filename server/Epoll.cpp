@@ -34,7 +34,7 @@ bool Epoll::addFd(int fd,uint32_t events){
     return (result==0);
 }
 
-bool Epoll::delFd(int fd,uint32_t events){
+bool Epoll::delFd(int fd){
     epoll_event ev = {0};
     int result=epoll_ctl(this->fd, EPOLL_CTL_DEL, fd, &ev);
     return (result==0);
