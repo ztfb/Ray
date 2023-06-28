@@ -118,23 +118,6 @@ void Server::start(){
             }else log_warn("未知事件...");
         }
     }
-    /*// 以下代码仅仅用于测试
-    char buf[2048];
-    while(true){
-        int num=read(cfd,buf,sizeof(buf)); // 阻塞函数
-        if(num==-1){
-            log_error("read函数调用失败...");
-            break;
-        }else if(num==0){
-            log_warn("客户端断开连接...");
-            break;
-        }else if(num>0){
-            log_debug(buf);
-        }
-        const char *data="i had received!";
-        write(cfd,data,strlen(data)+1);
-    }
-    close(cfd);*/
 }
 
 Server::~Server(){

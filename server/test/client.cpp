@@ -14,19 +14,21 @@ int main(){
     connect(fd,(struct sockaddr*)(&saddr),sizeof(saddr));
     char buf[2048];
     while(true){
-        std::string data="I am client: "+std::to_string(getpid());
-        write(fd,data.c_str(),data.size()+1);
-        int len=read(fd,buf,sizeof(buf));
-        if(len==-1){
+        std::string message="I am client: "+std::to_string(getpid());
+        std::string len=std::to_string(message.size()+1);//报文头
+        std::string data=len+message;
+        write(fd,data.c_str(),data.size());
+        int ret=read(fd,buf,sizeof(buf));
+        if(ret==-1){
             std::cout<<"read调用失败"<<std::endl;
             break;
-        }else if(len==0){
+        }else if(ret==0){
             std::cout<<"服务器关闭"<<std::endl;
             break;
-        }else if(len>0){
+        }else if(ret>0){
             std::cout<<buf<<std::endl;
         }
-        sleep(1);
+        sleep(5);
     }
     close(fd);
 }
