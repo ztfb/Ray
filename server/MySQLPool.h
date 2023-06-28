@@ -10,7 +10,7 @@
 class MySQLPool{
 public:
     static std::shared_ptr<MySQLPool> instance(); // 获取MySQLPool的单例对象
-    void init(const std::string& host,int port,const std::string& username,const std::string& password,
+    bool init(const std::string& host,int port,const std::string& username,const std::string& password,
                 const std::string& dbname,int connNum);
     
     void close(); // 关闭连接池

@@ -36,6 +36,7 @@ void Log::init(bool isOpenLog,int logLevel,bool isAsync){
             }
         }).detach(); // 设置线程分离
     }
+    log_info("日志系统初始化成功...");
 }
 
 void log_base(const std::string& log,int level1,const std::string& level2){
@@ -73,4 +74,12 @@ void log_warn(const std::string& log){
 }
 void log_error(const std::string& log){
     log_base(log,4,"error");
+}
+
+Log::~Log(){
+    std::unique_lock<std::mutex> lock(queLock);
+    while(!logQue.empty()){
+        std::cout<<logQue.front()<<std::endl;
+        logQue.pop();
+    }
 }

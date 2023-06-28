@@ -28,7 +28,8 @@ Server::Server(const std::string& fileName){
     ThreadPool::instance()->init(std::stoi(config["threadNum"])); // 初始化线程池
     
     // 初始化MySQL连接池
-    MySQLPool::instance()->init(config["mysqlHost"],std::stoi(config["mysqlPort"]),config["mysqlUsername"],
+    // 如果mysql连接池初始化失败，将isSuccess置为false
+    isSuccess=MySQLPool::instance()->init(config["mysqlHost"],std::stoi(config["mysqlPort"]),config["mysqlUsername"],
                                 config["mysqlPassword"],config["mysqlDB"],std::stoi(config["sqlconnNum"]));
     
     
@@ -38,32 +39,32 @@ Server::Server(const std::string& fileName){
         // 套接字初始化失败
         log_error("套接字初始化失败...");
         isSuccess=false;
-    }
+    }else log_info("套接字初始化成功...");
 
     // 初始化客户端套接字（仅仅用于测试）
     // 把cfd定义为全局变量
-    struct sockaddr_in caddr;
+    /*struct sockaddr_in caddr;
     int len=sizeof(caddr);
-    cfd=accept(listenFd,(struct sockaddr *)(&caddr),(socklen_t*)&len);
+    cfd=accept(listenFd,(struct sockaddr *)(&caddr),(socklen_t*)&len);*/
     // 注意：python运行器只需要载入python路由脚本（prouter），并且给它传递若干参数：
     // 一个是MYSQL连接（在调用这个路由函数之前必须获取一个mysql连接）
     // 其他的是HTTP请求相关字符串
     // 该路由函数返回值是HTTP响应相关的字符串（主要是响应头和JSON响应体）
     // 获取一个可用的连接
-    /*MYSQL *mysql=NULL;
+    MYSQL *mysql=NULL;
     mysql=MySQLPool::instance()->getConn();
     while(mysql==NULL){
         mysql=MySQLPool::instance()->getConn();
-    }*/
-    /*RunPython::instance()->init("./temp-script"); // 初始化python运行器
+    }
+    RunPython::instance()->init(config["scriptPath"]); // 初始化python运行器
     RunPython::instance()->loadModule("pmysql_test");
     RunPython::instance()->loadFunction("pmysql_test","test");
     char *ret;
     PyObject *args=RunPython::instance()->initArgs(2);
     // 无论在32位机还是64位机上，指针长度和long保持一致，因此用long传递指针即可
     RunPython::instance()->buildArgs(args,0,(long)(mysql));
-    RunPython::instance()->buildArgs(args,1,3);
-    RunPython::instance()->callFunc("pmysql_test","test",args,ret);*/
+    RunPython::instance()->buildArgs(args,1,0);
+    RunPython::instance()->callFunc("pmysql_test","test",args,ret);
 
     log_info("服务器配置初始化完成...");
     

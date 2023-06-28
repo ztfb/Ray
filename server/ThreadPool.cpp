@@ -34,10 +34,21 @@ void ThreadPool::init(int threadNum){
             }
         }).detach();
     }
+    log_info("线程池初始化成功...");
 }
 
 void ThreadPool::addTask(std::function<void()> task) {
-    std::lock_guard<std::mutex> lock(ThreadPool::instance()->poolLock);
-    ThreadPool::instance()->taskQue.push(task);
-    ThreadPool::instance()->condvar.notify_one(); // 唤醒一个正在阻塞的工作线程
+    std::lock_guard<std::mutex> lock(poolLock);
+    taskQue.push(task);
+    condvar.notify_one(); // 唤醒一个正在阻塞的工作线程
+}
+
+ThreadPool::~ThreadPool(){
+    std::unique_lock<std::mutex> lock(poolLock);
+    while(!taskQue.empty()){
+        // 从任务队列中取出任务并执行
+        auto task=taskQue.front();
+        taskQue.pop();
+        task();
+    }
 }

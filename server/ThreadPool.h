@@ -14,6 +14,7 @@ public:
     void init(int threadNum); // 初始化线程池
     void addTask(std::function<void()> task); //向任务队列中添加任务
 
+    ~ThreadPool();
     ThreadPool(const ThreadPool&) = delete; // 禁用拷贝构造函数
     ThreadPool& operator=(const ThreadPool&) = delete; // 禁用赋值运算符
 private:

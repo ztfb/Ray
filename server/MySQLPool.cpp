@@ -16,23 +16,24 @@ std::shared_ptr<MySQLPool> MySQLPool::instance(){
     return mysqlPool;
 }
 
-void MySQLPool::init(const std::string& host,int port,const std::string& username,const std::string& password,
+bool MySQLPool::init(const std::string& host,int port,const std::string& username,const std::string& password,
                 const std::string& dbname,int connNum)
 {
     for(int i=0;i<connNum;i++){
         MYSQL* mysql=mysql_init(NULL);
         if(mysql==nullptr){
             log_error("MySQL初始化失败...");
-            return ;
+            return false;
         }
         mysql=mysql_real_connect(mysql,host.c_str(),username.c_str(),password.c_str(),dbname.c_str(),port,NULL,0);
         if(mysql==nullptr){
-            log_warn("MySQL连接失败...");
-            return ;
+            log_error("MySQL连接失败...");
+            return false;
         }
-        log_info("MySQL连接成功...");
         connQue.push(mysql); // 将成功的连接加到连接队列中
     }
+    log_info("MySQL连接池初始化成功...");
+    return true;
 }
 
 void MySQLPool::close(){
@@ -43,7 +44,8 @@ void MySQLPool::close(){
         connQue.pop();
         mysql_close(mysql);
     }
-    mysql_library_end();  
+    mysql_library_end();
+    log_warn("MySQL连接池关闭...");
 }
 
 MYSQL* MySQLPool::getConn(){

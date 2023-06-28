@@ -10,6 +10,7 @@
 
 class Log{
 public:
+    // 在开发服务器核心时，最好使用同步的日志系统；服务器上线运行时，可以使用异步的日志系统
     static std::shared_ptr<Log> instance(); // 获取Log的单例对象
     void init(bool isOpenLog,int logLevel,bool isAsync); // 初始化Log
 
@@ -22,6 +23,7 @@ public:
 
     void addLog(const std::string& log){Log::instance()->logQue.push(log);} // 将日志信息添加到日志队列中
 
+    ~Log();
     Log(const Log&) = delete; // 禁用拷贝构造函数
     Log& operator=(const Log&) = delete; // 禁用赋值运算符
 private:
