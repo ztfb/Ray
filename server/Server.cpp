@@ -93,7 +93,7 @@ void Server::start(){
                 setNonBlock(cfd); // 由于使用边沿触发模式，因此必须设置文件非阻塞
                 // 将该连接添加到定时器中
                 Timer::instance()->add(cfd,std::stoi(config["timeoutMS"]),
-                std::bind(&Server::disconnect,this,connections[cfd]));
+                std::bind(&Server::connectTimeout,this,connections[cfd]));
             }
             // 负责和客户端通信的通信套接字就绪
             else if(events&(EPOLLRDHUP|EPOLLHUP|EPOLLERR)){
@@ -216,7 +216,16 @@ void Server::setNonBlock(int fd){
 
 void Server::disconnect(Connection* conn){
     log_info(conn->getIP()+":"+std::to_string(conn->getPort())+" 离开...");
+    Epoll::instance()->delFd(conn->getFd())==true;
+    Timer::instance()->del(conn->getFd()); // 从定时器中删除节点
+    connections.erase(conn->getFd());
+    delete conn;
+}
+
+void Server::connectTimeout(Connection *conn){
+    log_info(conn->getIP()+":"+std::to_string(conn->getPort())+" 离开...");
     Epoll::instance()->delFd(conn->getFd());
+    connections.erase(conn->getFd());
     delete conn;
 }
 
@@ -257,6 +266,9 @@ void Server::writeEvent(Connection* conn){
         // 重新注册监听文件描述符的可写事件
         Epoll::instance()->modFd(conn->getFd(),connEvent|EPOLLOUT);
         return ;// 退出该函数
+    }else if(ret==0){ // 客户端断开连接
+        disconnect(conn);
+        return ;
     }
     // 如果写缓冲区中所有的数据都已经写入，并且没有keep-alive的要求，则断开与该客户端的通信
     disconnect(conn);

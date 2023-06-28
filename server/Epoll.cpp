@@ -53,7 +53,7 @@ int Epoll::wait(int timeoutMS){
     // 监听就绪的文件描述符，并返回就绪的文件描述符数量，如果返回-1，epoll_wait()调用失败
     // timeoutMS是超时时间，传入-1表示不会超时（即如果没有就绪的文件描述符，就一直阻塞）
     // 用传入参数events保存这次就绪的文件描述法
-    return epoll_wait(this->fd, &events[0], static_cast<int>(events.size()), timeoutMS);
+    return epoll_wait(fd, &events[0], static_cast<int>(events.size()), timeoutMS);
 }
 
 int Epoll::getFd(int index){

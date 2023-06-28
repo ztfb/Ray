@@ -59,7 +59,7 @@ ssize_t Buffer::writeToFile(int fd){
     return len;
 }
 
-void Buffer::appendData(const std::string& data){
+void Buffer::appendData(const std::vector<char>& data){
     if(data.size()<=writableBytes()){
         std::copy(&data[0],(&data[0])+data.size(),(&buffer[0])+writePos);
         writePos+=data.size();
@@ -84,10 +84,17 @@ void Buffer::appendData(const std::string& data){
     }
 }
 
-std::string Buffer::getData(){
-    const char* begin=(&buffer[0])+readPos;
-    // 将可读空间中的数据全部读出并返回
-    std::string data(begin,readableBytes());
-    readPos=writePos=0;
+std::vector<char> Buffer::readDate(int begin,int end){
+    const char* b=(&buffer[0])+readPos+begin;
+    const char* e=(&buffer[0])+readPos+end;
+    std::vector<char> data(b,e);
+    return data;
+}
+
+std::vector<char> Buffer::getData(int len){
+    const char* b=(&buffer[0])+readPos;
+    const char* e=(&buffer[0])+readPos+len;
+    std::vector<char> data(b,e);
+    readPos+=len;
     return data;
 }

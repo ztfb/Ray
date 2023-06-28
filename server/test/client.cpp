@@ -17,7 +17,7 @@ int main(){
         std::string message="I am client: "+std::to_string(getpid());
         std::string len=std::to_string(message.size()+1);//报文头
         std::string data=len+message;
-        write(fd,data.c_str(),data.size());
+        write(fd,data.c_str(),data.size()+1);
         int ret=read(fd,buf,sizeof(buf));
         if(ret==-1){
             std::cout<<"read调用失败"<<std::endl;
@@ -28,7 +28,6 @@ int main(){
         }else if(ret>0){
             std::cout<<buf<<std::endl;
         }
-        sleep(5);
     }
     close(fd);
 }

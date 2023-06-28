@@ -26,6 +26,7 @@ public:
     void add(int id,int timeout,std::function<void()> callback); //添加一个节点
     void clearTimeoutNode(); // 清除所有超时的节点
     int getExpiration(); // 获取距离最近的到期时间的毫秒数
+    // 用于客户端主动断开连接时从定时器中删除一个节点
     void del(int id); // 根据id删除一个节点
 
     Timer(const Timer&) = delete; // 禁用拷贝构造函数

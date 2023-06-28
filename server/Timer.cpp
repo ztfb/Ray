@@ -17,6 +17,7 @@ std::shared_ptr<Timer> Timer::instance(){
 }
 
 void Timer::up(int index){
+    if(index==0)return;
     int parent=(index-1)/2; // 当前节点父节点的索引
     while(parent>=0){ // parent<0时，表明当前节点已经到达根节点
         if(heap[parent]<heap[index])break; // 已经满足了小根堆的特点，结束循环
@@ -76,7 +77,7 @@ void Timer::clearTimeoutNode(){
         Node node=heap.front();
         // 如果根节点（它是最可能超时的节点）没有超时，说明已经没有超时节点了，退出循环
         if(std::chrono::duration_cast<std::chrono::milliseconds>(
-            node.expiration-std::chrono::high_resolution_clock::now()).count()>0)break; 
+            node.expiration-std::chrono::high_resolution_clock::now()).count()>0)break;
         node.callback(); // 执行节点超时的回调函数
         pop(); // 移出堆顶节点
     }
@@ -96,11 +97,16 @@ int Timer::getExpiration(){
 }
 
 void Timer::del(int id){
-    int index=id2index[id];
-    Node node = heap[index];
-    node.callback(); // 调用待删除节点的回调函数
-    swap(index,heap.size()-1);
-    id2index.erase(id); // 删除节点的映射
-    heap.pop_back(); // 删除节点
-    down(index); // 调整节点位置
+    if(id2index.count(id)!=0){
+        int index=id2index[id];
+        Node node = heap[index];
+        // del中不能调用节点的回调函数，否则将会造成循环调用
+        // 当节点过期或者客户端关闭时，会调用Server的disconnect函数，该函数会调用定时器的del函数
+        // 如果是节点过期引起的disconnect回调，由于在调用disconnect之前，就已经清除节点，所以调用该函数无效
+        // 如果是客户端关闭引起的disconnect回调，则调用del主动删除节点
+        swap(index,heap.size()-1);
+        id2index.erase(id); // 删除节点的映射
+        heap.pop_back(); // 删除节点
+        down(index); // 调整节点位置
+    }
 }

@@ -19,8 +19,9 @@ public:
     
     ssize_t readFromFile(int fd); // 从文件fd中读数据到可写空间
     ssize_t writeToFile(int fd); // 从可读空间向文件fd中写数据
-    void appendData(const std::string& data); // 向缓冲区可写空间中添加数据
-    std::string getData(); // 将缓冲区可读空间中的数据全部取出
+    void appendData(const std::vector<char>& data); // 向缓冲区可写空间中添加数据
+    std::vector<char> readDate(int begin,int end); // 读缓冲区可读空间[begin,end)中的数据（并非真正取出）
+    std::vector<char> getData(int len); // 将缓冲区可读空间中的len字节数据真正取出
 private:
     std::vector<char> buffer; // 缓冲区（本质是字节序列）
     // 0～readPos：暂时没有被使用的空间

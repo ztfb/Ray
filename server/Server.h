@@ -14,7 +14,8 @@ private:
     void parseIni(const std::string& fileName); // 解析ini配置文件，并将解析结果写到config中
     bool initSocket(); // 初始化套接字
     void setNonBlock(int fd); // 将文件描述符设置为非阻塞
-    void disconnect(Connection* conn); // 断开和某个客户端的连接
+    void disconnect(Connection* conn); // 客户端断开连接
+    void connectTimeout(Connection *conn); // 连接过期
     void readEvent(Connection* conn); // conn的可读事件就绪，调用该函数进行处理
     void process(Connection* conn); // 处理读出的数据
     void writeEvent(Connection* conn); // conn的可写事件就绪，调用该函数进行处理

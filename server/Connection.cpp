@@ -5,6 +5,8 @@ Connection::Connection(int cfd, const std::string& ip,int port){
     this->cfd=cfd;
     this->ip=ip;
     this->port=port;
+    // 默认打开keep-alive
+    isKeepAlive=true;
 }
 
 Connection::~Connection(){
@@ -27,26 +29,26 @@ bool Connection::process(){
     // 如果进行处理了，则返回true；如果没有进行处理，则返回false
 
     // 以下为测试程序
-    std::string data=readBuffer.getData();// 先把数据全部读出
-    log_debug(data);
-    if(data.size()<2){
+    if(readBuffer.readableBytes()<2){
         // 不足一个报文头，无法处理
-        readBuffer.appendData(data);
         return false;
     }else{
-        int len=std::stoi(data.substr(0,2));
-        if(data.size()<2+len){
+        std::string temp="";
+        std::vector<char> temp2=readBuffer.readDate(0,2);
+        temp.push_back(temp2[0]);temp.push_back(temp2[1]);
+        int len=std::stoi(temp);
+        if(readBuffer.readableBytes()<2+len){
             // 报文不完整，无法处理
-            readBuffer.appendData(data);
             return false;
         }else{
-            std::string message=data.substr(2,len);
+            std::vector<char> temp=readBuffer.getData(2+len);
+            std::vector<char> message;
+            for(int i=2;i<2+len;i++)message.push_back(temp[i]);
             for(int i=0;i<message.size();i++){
                 if(message[i]>='a'&&message[i]<='z')message[i]=message[i]-'a'+'A';
             }
-            message+='\n';
+            message.push_back('\n');
             writeBuffer.appendData(message);
-            readBuffer.appendData(data.substr(2+len,data.size()-2-len));
             return true;
         }
     }
