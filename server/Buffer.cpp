@@ -49,6 +49,7 @@ ssize_t Buffer::readFromFile(int fd){
     }
     return len;
 }
+
 ssize_t Buffer::writeToFile(int fd){
     // 第一个可读的字节的地址是(&buffer[0])+readPos；可读字节总数为readableBytes()
     int len=write(fd,(&buffer[0])+readPos,readableBytes());
@@ -56,4 +57,37 @@ ssize_t Buffer::writeToFile(int fd){
     if(len<=0)return len;
     readPos+=len; // 写入成功时需要移动读指针
     return len;
+}
+
+void Buffer::appendData(const std::string& data){
+    if(data.size()<=writableBytes()){
+        std::copy(&data[0],(&data[0])+data.size(),(&buffer[0])+writePos);
+        writePos+=data.size();
+    }else{
+        int writable=writableBytes();
+        int readable=readableBytes();
+        int oldSize=buffer.size();
+        if(writableBytes()+unusedBytes()>=data.size()){
+            // 可写空间加上未使用空间足够容纳追加的数据
+            // 将可读空间前移，把未使用的空间用起来
+            std::copy((&buffer[0])+readPos,(&buffer[0])+writePos,&buffer[0]);
+            writePos=readable;
+            readPos=0;
+            std::copy(&data[0],(&data[0])+data.size(),(&buffer[0])+writePos);
+            writePos+=data.size();
+        }else{
+            // 容量不够时直接扩容
+            buffer.resize(oldSize+data.size()-writable+1);
+            std::copy(&data[0],(&data[0])+data.size(),(&buffer[0])+writePos);
+            writePos+=data.size();
+        }
+    }
+}
+
+std::string Buffer::getData(){
+    const char* begin=(&buffer[0])+readPos;
+    // 将可读空间中的数据全部读出并返回
+    std::string data(begin,readableBytes());
+    readPos=writePos=0;
+    return data;
 }

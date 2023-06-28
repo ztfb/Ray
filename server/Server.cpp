@@ -86,26 +86,26 @@ void Server::start(){
                 struct sockaddr_in caddr;
                 socklen_t len = sizeof(caddr);
                 int cfd = accept(listenFd, (struct sockaddr *)&caddr, &len);
-                connections.emplace((cfd,Connection(cfd,caddr))); // 创建一个连接
-                log_info(connections[cfd].getIP()+":"+std::to_string(connections[cfd].getPort())+" 接入...");
+                connections[cfd]=new Connection(cfd,inet_ntoa(caddr.sin_addr),caddr.sin_port); // 创建一个连接
+                log_info(connections[cfd]->getIP()+":"+std::to_string(connections[cfd]->getPort())+" 接入...");
                 // 将cfd添加到epoll的监听文件集中
                 Epoll::instance()->addFd(cfd,EPOLLIN|connEvent);
                 setNonBlock(cfd); // 由于使用边沿触发模式，因此必须设置文件非阻塞
                 // 将该连接添加到定时器中
                 Timer::instance()->add(cfd,std::stoi(config["timeoutMS"]),
-                std::bind(&Server::disconnect,this,&connections[cfd]));
+                std::bind(&Server::disconnect,this,connections[cfd]));
             }
             // 负责和客户端通信的通信套接字就绪
             else if(events&(EPOLLRDHUP|EPOLLHUP|EPOLLERR)){
                 // 对端出现异常，关闭该连接
-                disconnect(&connections[fd]);
+                disconnect(connections[fd]);
             }
             else if(events&EPOLLIN){
                 // 读事件就绪，从文件描述符中将数据读出
                 // 节点活跃，应当调整节点的到期时间
                 Timer::instance()->adjust(fd,std::stoi(config["timeoutMS"]));
                 ThreadPool::instance()->addTask(std::bind(
-                    &Server::readEvent,this,&connections[fd]
+                    &Server::readEvent,this,connections[fd]
                 ));
             }
             else if(events&EPOLLOUT){
@@ -113,7 +113,7 @@ void Server::start(){
                 // 节点活跃，应当调整节点的到期时间
                 Timer::instance()->adjust(fd,std::stoi(config["timeoutMS"]));
                 ThreadPool::instance()->addTask(std::bind(
-                    &Server::writeEvent,this,&connections[fd]
+                    &Server::writeEvent,this,connections[fd]
                 ));
             }else log_warn("未知事件...");
         }
@@ -234,12 +234,12 @@ void Server::setNonBlock(int fd){
 void Server::disconnect(Connection* conn){
     log_info(conn->getIP()+":"+std::to_string(conn->getPort())+" 离开...");
     Epoll::instance()->delFd(conn->getFd());
-    conn->disconnect();
+    delete conn;
 }
 
 void Server::readEvent(Connection* conn){
     int ret=conn->readFromFile();
-    if(ret==0){ // 客户端端开连接
+    if(ret==0){ // 客户端断开连接
         disconnect(conn);
         return ;
     }
@@ -247,9 +247,34 @@ void Server::readEvent(Connection* conn){
 }
 
 void Server::process(Connection* conn){
-
+    if(conn->process()){ // 进行了处理，注册监听该文件描述符的可写事件
+        Epoll::instance()->modFd(conn->getFd(),connEvent|EPOLLOUT);
+    }else{ // 没有处理（一般是因为当前数据的长度不足，无法进行处理），重新注册监听可读事件
+        /*
+        对于注册了EPOLLONESHOT的文件描述符，操作系统最多触发其上注册的一个可读、可写或者异常事件，且只触发一次
+        这样，当一个线程在处理某个socket时候，其他线程是不可能有机会操作该socket的
+        注册了EPOLLONESHOT事件的socket一旦被某个线程处理完毕，该线程就应该立即重置这个socket上的EPOLLONESHOT事件
+        以确保这个socket下一次可读时，其EPOLLIN事件能被触发，进而让其他工作线程有机会继续处理这个socket
+        */
+        Epoll::instance()->modFd(conn->getFd(),connEvent|EPOLLIN);
+    }
 }
 
 void Server::writeEvent(Connection* conn){
-
+    int ret=conn->writeToFile();
+    if(!conn->hasData()){
+        // 写缓冲区中的数据都已经写入
+        if(conn->getKeepAlive()){
+            // 如果有keep-alive的要求，则再次进入处理函数，并重新注册文件描述法的监听事件
+            process(conn);
+            return ;
+        }
+    }else if(ret==-1){
+        // 写缓冲区中还有数据未写入，由于某种原因写入暂时失败了（例如内核空间不足）
+        // 重新注册监听文件描述符的可写事件
+        Epoll::instance()->modFd(conn->getFd(),connEvent|EPOLLOUT);
+        return ;// 退出该函数
+    }
+    // 如果写缓冲区中所有的数据都已经写入，并且没有keep-alive的要求，则断开与该客户端的通信
+    disconnect(conn);
 }

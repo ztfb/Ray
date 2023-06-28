@@ -40,9 +40,9 @@ if(!ThreadPool::instance()->taskQue.empty()){
 
 server使用一个简易的自增长缓冲区。缓冲区分为三个部分：`0～readPos：暂时没有被使用的空间`、`readPos～writePos：可以读的空间（可以把这部分数据读到文件中）`、`writePos～buffer.size：可以写的空间（可以将文件中的数据写到这部分空间中）`。
 
-缓冲区对外提供了两个操作函数：`readFromFile`函数用于从文件中读数据到写空间、`writeToFile`函数用于从读空间向文件中写数据。`writeToFile`的实现较为简单，直接将缓冲区读空间中的可读字节写到文件中即可；
+缓冲区对外提供了四个操作函数：`readFromFile`函数用于从文件中读数据到写空间、`writeToFile`函数用于从读空间向文件中写数据、`appendData`函数用于向可写空间中追加数据、`getData`函数用于取出可读空间中的所有数据。
 
-`readFromFile`函数的实现则较为复杂，首先我们创建一个足够大的临时缓冲区，并利用分散读将文件中的数据读到Buffer和临时缓冲区中。如果从文件中读出的数据较少，少于Buffer当前可用的字节数，则Buffer无需扩容；否则需要将Buffer扩容。
+`writeToFile`的实现较为简单，直接将缓冲区读空间中的可读字节写到文件中即可；`readFromFile`函数的实现则较为复杂，首先我们创建一个足够大的临时缓冲区，并利用分散读将文件中的数据读到Buffer和临时缓冲区中。如果从文件中读出的数据较少，少于Buffer当前可用的字节数，则Buffer无需扩容；否则需要将Buffer扩容。另外两个函数的实现原理类似。
 
 ## 数据库连接池
 
