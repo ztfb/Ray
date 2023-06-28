@@ -36,18 +36,6 @@ bool MySQLPool::init(const std::string& host,int port,const std::string& usernam
     return true;
 }
 
-void MySQLPool::close(){
-    std::unique_lock<std::mutex> lock(poolLock);
-    while(!connQue.empty()) {
-        // 将创建好的连接从队列中取出并关闭
-        auto mysql = connQue.front();
-        connQue.pop();
-        mysql_close(mysql);
-    }
-    mysql_library_end();
-    log_warn("MySQL连接池关闭...");
-}
-
 MYSQL* MySQLPool::getConn(){
     // 从连接队列中取出一个连接使用
     MYSQL *mysql = nullptr;
@@ -69,5 +57,13 @@ void MySQLPool::freeConn(MYSQL *mysql){
 
 MySQLPool::~MySQLPool(){
     // 析构对象时要释放系统资源
-    close();
+    std::unique_lock<std::mutex> lock(poolLock);
+    while(!connQue.empty()) {
+        // 将创建好的连接从队列中取出并关闭
+        auto mysql = connQue.front();
+        connQue.pop();
+        mysql_close(mysql);
+    }
+    mysql_library_end();
+    log_warn("MySQL连接池关闭...");
 }

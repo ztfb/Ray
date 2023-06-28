@@ -55,6 +55,7 @@ void Timer::pop(){
 }
 
 void Timer::adjust(int id,int timeout){
+    std::unique_lock<std::mutex> lock(timerLock);
     // 更新节点的到期时间
     heap[id2index[id]].expiration=std::chrono::high_resolution_clock::now()+std::chrono::milliseconds(timeout);
     // 调整节点位置
@@ -62,6 +63,7 @@ void Timer::adjust(int id,int timeout){
 }
 
 void Timer::add(int id,int timeout,std::function<void()> callback){
+    std::unique_lock<std::mutex> lock(timerLock);
     int index=heap.size();
     id2index[id]=index;
     // 向堆的最后加入这个节点
@@ -84,6 +86,7 @@ void Timer::clearTimeoutNode(){
 }
 
 int Timer::getExpiration(){
+    std::unique_lock<std::mutex> lock(timerLock);
     clearTimeoutNode(); // 先清除所有超时节点
     int result=-1;
     if(!heap.empty()) {
@@ -97,6 +100,7 @@ int Timer::getExpiration(){
 }
 
 void Timer::del(int id){
+    std::unique_lock<std::mutex> lock(timerLock);
     if(id2index.count(id)!=0){
         int index=id2index[id];
         Node node = heap[index];

@@ -13,7 +13,6 @@ public:
     bool init(const std::string& host,int port,const std::string& username,const std::string& password,
                 const std::string& dbname,int connNum);
     
-    void close(); // 关闭连接池
     MYSQL* getConn(); // 获取一个连接
     void freeConn(MYSQL *mysql); // 释放一个连接
     
