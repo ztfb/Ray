@@ -40,9 +40,9 @@ if(!ThreadPool::instance()->taskQue.empty()){
 
 server使用一个简易的自增长缓冲区。缓冲区分为三个部分：`0～readPos：暂时没有被使用的空间`、`readPos～writePos：可以读的空间（可以把这部分数据读到文件中）`、`writePos～buffer.size：可以写的空间（可以将文件中的数据写到这部分空间中）`。
 
-缓冲区对外提供了四个操作函数：`readFromFile`函数用于从文件中读数据到写空间、`writeToFile`函数用于从读空间向文件中写数据、`appendData`函数用于向可写空间中追加数据、`getData`函数用于取出可读空间中的所有数据。
+缓冲区对外提供了五个操作函数：`readFromFile`函数用于从文件中读数据到写空间、`writeToFile`函数用于从读空间向文件中写数据、`appendData`函数用于向可写空间中追加数据、`getData`函数用于取出可读空间中的数据、`readData`用于查看可读空间中的数据。
 
-`writeToFile`的实现较为简单，直接将缓冲区读空间中的可读字节写到文件中即可；`readFromFile`函数的实现则较为复杂，首先我们创建一个足够大的临时缓冲区，并利用分散读将文件中的数据读到Buffer和临时缓冲区中。如果从文件中读出的数据较少，少于Buffer当前可用的字节数，则Buffer无需扩容；否则需要将Buffer扩容。另外两个函数的实现原理类似。
+`writeToFile`的实现较为简单，直接将缓冲区读空间中的可读字节写到文件中即可；`readFromFile`函数的实现则较为复杂，首先我们创建一个足够大的临时缓冲区，并利用分散读将文件中的数据读到Buffer和临时缓冲区中。如果从文件中读出的数据较少，少于Buffer当前可用的字节数，则Buffer无需扩容；否则需要将Buffer扩容。其余函数的实现原理类似。
 
 ## 数据库连接池
 
@@ -70,7 +70,7 @@ server使用的是一个基于小根堆的定时器，定时器中每个节点�
 
 项目中Python文件夹包含C++调用Python脚本所必须的头文件和库文件，其相当于一个简化版的Python解释器。以下是安装Python解释器的流程：
 
-```
+```python
 1.去Python官网：https://www.python.org 下载Python-3.8.6.tgz（当然也可以下载其他版本，但是该版本是我验证过，可以成功的）
 2.使用命令tar -zxvf Python-3.8.6.tgz 打开压缩包
 3.安装编译Python所需依赖：apt-get install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gcc make
@@ -83,3 +83,24 @@ server使用的是一个基于小根堆的定时器，定时器中每个节点�
 6.进行安装：sudo make altinstall
 7./usr/local/python3.8/include下有所需的头文件；/usr/local/python3.8/lib和/usr/local/python3.8/libpython3.8/config-3.8-x86_64-linux-gnu有所需的库文件
 ```
+
+## 客户端连接封装
+
+本项目中对客户端的连接进行了一定的封装。每个Connection对象中保存了该客户端连接对应的文件描述符、客户端的IP地址和端口、一个可以自动增长的读缓冲区和一个可以自动增长的写缓冲区、HTTP请求头中的重要字段（例如keep-alive）。
+
+Connection类有三个主要的方法：`readFromFile`方法用于将数据从通信套接字的读缓冲区中读到Connection的读缓冲中、`process`方法将会调用HTTP解析器（`HttpParser`）解析读缓冲区中的数据，并将解析结果传递给Python路由器（`prouter`），Python路由器调用相应的处理函数进行业务处理，最后将处理结果返回给process函数，process函数需要根据返回的结果，调用HTTP构造器（`HttpBuilder`）构造HTTP响应，并将其写入到Connection的写缓冲中。`writeToFile`方法用于将写缓冲中的数据写到通信套接字的写缓冲区中（由内核将这些数据发送出去）。
+
+## 服务器模型
+
+本项目的服务器是基于Reactor并发模型的（主线程只负责accept请求，具体读写和处理任务分发给其它IO线程(兼计算线程)），使用epoll循环检测文件描述符的就绪状态。如果有文件描述符就绪，就依次进行处理：如果是监听套接字就绪，就取出通信套接字的文件描述符并保存起来；如果是读事件就绪，则将相应的方法加到任务队列中，由线程池中的线程依次处理；如果是写事件就绪，也将相应的方法加到任务队列中，由线程池中的线程依次处理。
+
+以下是一些需要注意的细节：
+
+* 本项目中，监听套接字使用水平触发模式（LT），因此不需要循环使用accept进行检测，而通信套接字使用边沿触发模式（ET），因此需要循环使用read读取数据。监听套接字和通信套接字都注册了`EPOLLRDHUP`事件的监听，以可以感知客户端的情况。除此之外，通信套接字还注册了`EPOLLONESHOT`，保证每次就绪时只会触发一次（除非重置监听事件），保证了同时只有一个线程能操作一个socket。
+* 本项目中，监听套接字和通信套接字对应的文件描述符都设置为非阻塞的，这是为了防止某个文件描述符的读写阻塞导致其他用户被饿死。
+* 在初始化监听套接字时，设置了端口复用和优雅关闭选项。
+* 对于客户端的关闭，有两种情况，一种是客户端超时未连接，服务器自动将其清除掉；另一种是客户端主动断开连接。这两种客户端断开连接的情况要使用不同的清理函数释放系统资源（分别是`connectTimeout`和`disconnect`）。
+
+## HTTP解析器
+
+## HTTP构造器
