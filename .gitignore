@@ -1,7 +1,8 @@
 # 忽略配置文件
 .vscode
 .idea
-# 忽略server的build文件夹
+# 忽略server下的build文件夹
 /server/build
+/server/test/build
 # 忽略sql的build文件夹
 /sql/build
