@@ -7,7 +7,7 @@
 
 class Server{
 public:
-    Server(const std::string& fileName); // 服务器初始化
+    Server(const std::string& configPath,const std::string& scriptPath); // 服务器初始化
     void start(); // 启动服务器
     ~Server();
 private:

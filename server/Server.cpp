@@ -13,11 +13,11 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 
-Server::Server(const std::string& fileName){
+Server::Server(const std::string& configPath,const std::string& scriptPath){
     listenEvent=EPOLLRDHUP; // 需要epoll检测对端关闭事件
     connEvent=EPOLLONESHOT|EPOLLRDHUP|EPOLLET; //  保证只触发一次；需要epoll检测对端关闭事件；使用边沿触发模式
     system("clear"); // 清屏，方便之后的日志输出
-    parseIni(fileName); // 解析配置文件
+    parseIni(configPath); // 解析配置文件
 
     // 初始化日志系统
     Log::instance()->init(
@@ -26,16 +26,18 @@ Server::Server(const std::string& fileName){
         (config["isAsync"]=="true"?true:false)
     );
 
-    ThreadPool::instance()->init(std::stoi(config["threadNum"])); // 初始化线程池
+    // 初始化线程池
+    ThreadPool::instance()->init(std::stoi(config["threadNum"]));
     
     // 初始化MySQL连接池
     // 如果mysql连接池初始化失败，将isSuccess置为false
     isSuccess=MySQLPool::instance()->init(config["mysqlHost"],std::stoi(config["mysqlPort"]),config["mysqlUsername"],
                                 config["mysqlPassword"],config["mysqlDB"],std::stoi(config["sqlconnNum"]));
     
-    
-    Epoll::instance()->init(1024); // 初始化Epoll
+    // 初始化Epoll
+    Epoll::instance()->init(1024);
 
+    // 初始化监听套接字
     if(initSocket()==false){
         // 套接字初始化失败
         log_error("套接字初始化失败...");
@@ -43,19 +45,29 @@ Server::Server(const std::string& fileName){
     }else log_info("套接字初始化成功...");
     
     // 注意：python运行器只需要载入python路由脚本（prouter），并且给它传递若干参数：
-    // 一个是MYSQL连接（在调用这个路由函数之前必须获取一个mysql连接）
-    // 其他的是HTTP请求相关字符串
-    // 该路由函数返回值是HTTP响应相关的字符串（主要是响应头和JSON响应体）
-    
-    /*RunPython::instance()->init(config["scriptPath"]); // 初始化python运行器
-    RunPython::instance()->loadModule("pmysql_test");
-    RunPython::instance()->loadFunction("pmysql_test","test");
+    /*
+    MYSQL连接（在调用这个路由函数之前必须获取一个mysql连接）
+    get请求还需要传递url 请求参数；post请求还需要传递url 请求体（json格式）
+    根据该函数返回值可以确定处理情况（未找到方法404，无访问权限403，内部错误500等）
+    以及处理成功200时的处理结果（主要是json响应体）
+    */
+    // 初始化Python脚本引擎
+    RunPython::instance()->init(scriptPath); 
+    // 载入prouter脚本以及getRouter和postRouter路由函数
+    /*
+    RunPython::instance()->loadModule("prouter");
+    RunPython::instance()->loadFunction("prouter","getRouter");
+    RunPython::instance()->loadFunction("prouter","postRouter");
+    */
+    // 以下是一个python函数调用示例
+    /*
     char *ret;
     PyObject *args=RunPython::instance()->initArgs(2);
     // 无论在32位机还是64位机上，指针长度和long保持一致，因此用long传递指针即可
     RunPython::instance()->buildArgs(args,0,(long)(mysql));
     RunPython::instance()->buildArgs(args,1,0);
-    RunPython::instance()->callFunc("pmysql_test","test",args,ret);*/
+    RunPython::instance()->callFunc("pmysql_test","test",args,ret);
+    */
 
     log_info("服务器配置初始化完成...");
     
