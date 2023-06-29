@@ -86,14 +86,19 @@ void Server::start(){
                 struct sockaddr_in caddr;
                 socklen_t len = sizeof(caddr);
                 int cfd = accept(listenFd, (struct sockaddr *)&caddr, &len);
-                connections[cfd]=new Connection(cfd,inet_ntoa(caddr.sin_addr),caddr.sin_port); // 创建一个连接
-                log_info(connections[cfd]->getIP()+":"+std::to_string(connections[cfd]->getPort())+" 接入...");
-                // 将cfd添加到epoll的监听文件集中
-                Epoll::instance()->addFd(cfd,EPOLLIN|connEvent);
-                setNonBlock(cfd); // 由于使用边沿触发模式，因此必须设置文件非阻塞
-                // 将该连接添加到定时器中
-                Timer::instance()->add(cfd,std::stoi(config["timeoutMS"]),
-                std::bind(&Server::connectTimeout,this,connections[cfd]));
+                if(Connection::connNum<std::stoi(config["maxConnNum"])){
+                    connections[cfd]=new Connection(cfd,inet_ntoa(caddr.sin_addr),caddr.sin_port); // 创建一个连接
+                    log_info(connections[cfd]->getIP()+":"+std::to_string(connections[cfd]->getPort())+" 接入...");
+                    // 将cfd添加到epoll的监听文件集中
+                    Epoll::instance()->addFd(cfd,EPOLLIN|connEvent);
+                    setNonBlock(cfd); // 由于使用边沿触发模式，因此必须设置文件非阻塞
+                    // 将该连接添加到定时器中
+                    Timer::instance()->add(cfd,std::stoi(config["timeoutMS"]),
+                    std::bind(&Server::connectTimeout,this,connections[cfd]));
+                }else{
+                    log_warn("服务器繁忙...");
+                    close(cfd);
+                }
             }
             // 负责和客户端通信的通信套接字就绪
             else if(events&(EPOLLRDHUP|EPOLLHUP|EPOLLERR)){

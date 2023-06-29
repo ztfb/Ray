@@ -1,7 +1,9 @@
 #include "Connection.h"
 #include "Log.h"
 
+int Connection::connNum=0; // 初始化
 Connection::Connection(int cfd, const std::string& ip,int port){
+    connNum++;
     this->cfd=cfd;
     this->ip=ip;
     this->port=port;
@@ -10,6 +12,7 @@ Connection::Connection(int cfd, const std::string& ip,int port){
 }
 
 Connection::~Connection(){
+    connNum--;
     close(cfd);
 }
 
