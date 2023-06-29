@@ -8,8 +8,8 @@ int main(int argc,char *argv[])
         Server server; // 创建服务器对象
         server.start(); // 启动服务器
     }else{
-        // argv[1]是配置文件路径参数，由ui生成并提供
-        // argv[2]是脚本文件路径参数，由ui生成并提供
+        // argv[1]是配置文件路径参数
+        // argv[2]是脚本文件路径参数
         Server server(argv[1],argv[2]); // 创建服务器对象
         server.start(); // 启动服务器
     }
