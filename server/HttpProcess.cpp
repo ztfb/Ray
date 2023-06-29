@@ -18,7 +18,7 @@ std::shared_ptr<HttpProcess> HttpProcess::instance(){
     return httpProcess;
 }
 
-bool HttpProcess::process(Buffer& readBuffer,Buffer& writeBuffer){
+bool HttpProcess::process(Connection* conn){
     // 如果处理了readBuffer，并写入了writeBuffer，则返回true
     // 如果没有处理readBuffer（一般是没有达到处理条件，例如报文不完整），则返回false
 
@@ -57,12 +57,22 @@ bool HttpProcess::process(Buffer& readBuffer,Buffer& writeBuffer){
         }
     }*/
 
-    if(readBuffer.readableBytes()!=0){
+    // 以下是一个python函数调用示例
+    /*
+    char *ret;
+    PyObject *args=RunPython::instance()->initArgs(2);
+    // 无论在32位机还是64位机上，指针长度和long保持一致，因此用long传递指针即可
+    RunPython::instance()->buildArgs(args,0,(long)(mysql));
+    RunPython::instance()->buildArgs(args,1,0);
+    RunPython::instance()->callFunc("pmysql_test","test",args,ret);
+    */
+   
+    if(conn->readBuffer.readableBytes()!=0){
         // 使用移动构造函数实现资源的转移
-        std::vector<char> temp(readBuffer.lookDate(0,readBuffer.readableBytes()));
-        readBuffer.abandonData(readBuffer.readableBytes()); // 不要忘记丢弃读出的数据
+        std::vector<char> temp(conn->readBuffer.lookDate(0,conn->readBuffer.readableBytes()));
+        conn->readBuffer.abandonData(conn->readBuffer.readableBytes()); // 不要忘记丢弃读出的数据
         log_debug("server:"+std::string(&temp[0],temp.size()));
-        writeBuffer.appendData(temp);
+        conn->writeBuffer.appendData(temp);
         return true;
     }else return false;
 }

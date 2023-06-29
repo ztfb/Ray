@@ -1,6 +1,5 @@
 #include "Connection.h"
 #include "Log.h"
-#include "HttpProcess.h"
 
 int Connection::connNum=0; // 初始化
 Connection::Connection(int cfd, const std::string& ip,int port){
@@ -31,7 +30,7 @@ ssize_t Connection::readFromFile(){
 bool Connection::process(){
     // 该函数处理readBuffer中的数据，并将处理结果写到writeBuffer中
     // 如果进行处理了，则返回true；如果没有进行处理，则返回false（如果只返回true或false将导致无法继续处理）
-    return HttpProcess::instance()->process(readBuffer,writeBuffer);
+    return HttpProcess::instance()->process(this);
 }
 
 ssize_t Connection::writeToFile(){

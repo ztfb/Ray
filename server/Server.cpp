@@ -59,15 +59,6 @@ Server::Server(const std::string& configPath,const std::string& scriptPath){
     RunPython::instance()->loadFunction("prouter","getRouter");
     RunPython::instance()->loadFunction("prouter","postRouter");
     */
-    // 以下是一个python函数调用示例
-    /*
-    char *ret;
-    PyObject *args=RunPython::instance()->initArgs(2);
-    // 无论在32位机还是64位机上，指针长度和long保持一致，因此用long传递指针即可
-    RunPython::instance()->buildArgs(args,0,(long)(mysql));
-    RunPython::instance()->buildArgs(args,1,0);
-    RunPython::instance()->callFunc("pmysql_test","test",args,ret);
-    */
 
     log_info("服务器配置初始化完成...");
     

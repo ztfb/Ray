@@ -3,13 +3,15 @@
 
 #include <memory>
 #include <mutex>
-#include "Buffer.h"
+#include "Connection.h"
+
+class Connection;
 
 class HttpProcess{
 public:
     static std::shared_ptr<HttpProcess> instance(); // 获取HttpParser的单例对象
 
-    bool process(Buffer& readBuffer,Buffer& writeBuffer); // 解析http请求并进行处理
+    bool process(Connection* conn); // 解析http请求并进行处理
     
     HttpProcess(const HttpProcess&) = delete; // 禁用拷贝构造函数
     HttpProcess& operator=(const HttpProcess&) = delete; // 禁用赋值运算符

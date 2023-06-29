@@ -5,8 +5,12 @@
 #include <arpa/inet.h>
 #include <string>
 #include "Buffer.h"
+#include "HttpProcess.h"
+
+class HttpProcess;
 
 class Connection{
+    friend class HttpProcess;
 public:
     static int connNum; // 当前连接的总数
     Connection(int cfd, const std::string& ip,int port); // 初始化
