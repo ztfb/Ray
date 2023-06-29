@@ -41,17 +41,13 @@ Server::Server(const std::string& fileName){
         log_error("套接字初始化失败...");
         isSuccess=false;
     }else log_info("套接字初始化成功...");
+    
     // 注意：python运行器只需要载入python路由脚本（prouter），并且给它传递若干参数：
     // 一个是MYSQL连接（在调用这个路由函数之前必须获取一个mysql连接）
     // 其他的是HTTP请求相关字符串
     // 该路由函数返回值是HTTP响应相关的字符串（主要是响应头和JSON响应体）
-    // 获取一个可用的连接
-    /*MYSQL *mysql=NULL;
-    mysql=MySQLPool::instance()->getConn();
-    while(mysql==NULL){
-        mysql=MySQLPool::instance()->getConn();
-    }
-    RunPython::instance()->init(config["scriptPath"]); // 初始化python运行器
+    
+    /*RunPython::instance()->init(config["scriptPath"]); // 初始化python运行器
     RunPython::instance()->loadModule("pmysql_test");
     RunPython::instance()->loadFunction("pmysql_test","test");
     char *ret;
@@ -214,7 +210,7 @@ bool Server::initSocket(){
 }
 
 void Server::setNonBlock(int fd){
-    int flag=fcntl(fd, F_GETFD);
+    int flag=fcntl(fd, F_GETFL);
     flag|=O_NONBLOCK;
     fcntl(fd,F_SETFL,flag);
 }
@@ -262,7 +258,12 @@ void Server::writeEvent(Connection* conn){
     if(!conn->hasData()){
         // 写缓冲区中的数据都已经写入
         if(conn->getKeepAlive()){
-            // 如果有keep-alive的要求，则再次进入处理函数，并重新注册文件描述法的监听事件
+            /*
+            如果有keep-alive的要求，则再次进入处理函数，并重新注册文件描述法的监听事件
+            进行process函数后，如果读缓冲区中有未处理完的数据，则处理后重新注册监听可写事件
+            如果读缓冲区中没有可处理的数据了，则conn的process返回false，重新注册监听可读事件
+            这样一来就可以保持长连接了。
+            */
             process(conn);
             return ;
         }

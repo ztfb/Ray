@@ -28,6 +28,7 @@ int main(){
         }else if(ret>0){
             std::cout<<buf<<std::endl;
         }
+        sleep(1);
     }
     close(fd);
 }
