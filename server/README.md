@@ -88,7 +88,7 @@ server使用的是一个基于小根堆的定时器，定时器中每个节点�
 
 本项目中对客户端的连接进行了一定的封装。每个Connection对象中保存了该客户端连接对应的文件描述符、客户端的IP地址和端口、一个可以自动增长的读缓冲区和一个可以自动增长的写缓冲区、HTTP请求头中的重要字段（例如keep-alive）。
 
-Connection类有三个主要的方法：`readFromFile`方法用于将数据从通信套接字的读缓冲区中读到Connection的读缓冲中、`process`方法将会调用HTTP解析器（`HttpParser`）解析读缓冲区中的数据，并将解析结果传递给Python路由器（`prouter`），Python路由器调用相应的处理函数进行业务处理，最后将处理结果返回给process函数，process函数需要根据返回的结果，调用HTTP构造器（`HttpBuilder`）构造HTTP响应，并将其写入到Connection的写缓冲中。`writeToFile`方法用于将写缓冲中的数据写到通信套接字的写缓冲区中（由内核将这些数据发送出去）。
+Connection类有三个主要的方法：`readFromFile`方法用于将数据从通信套接字的读缓冲区中读到Connection的读缓冲中、`process`方法将会调用HTTP处理器（`HttpProcess`）的方法process，解析读缓冲区中的数据，并将解析结果传递给Python路由器（`prouter`），Python路由器调用相应的处理函数进行业务处理，最后将处理结果返回给process函数，process函数需要根据返回的结果，构造HTTP响应，并将其写入到Connection的写缓冲中。`writeToFile`方法用于将写缓冲中的数据写到通信套接字的写缓冲区中（由内核将这些数据发送出去）。
 
 ## 服务器模型
 
@@ -101,6 +101,4 @@ Connection类有三个主要的方法：`readFromFile`方法用于将数据从�
 * 在初始化监听套接字时，设置了端口复用和优雅关闭选项。
 * 对于客户端的关闭，有两种情况，一种是客户端超时未连接，服务器自动将其清除掉；另一种是客户端主动断开连接。这两种客户端断开连接的情况要使用不同的清理函数释放系统资源（分别是`connectTimeout`和`disconnect`）。
 
-## HTTP解析器
-
-## HTTP构造器
+## HTTP处理器
