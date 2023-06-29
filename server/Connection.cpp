@@ -29,10 +29,9 @@ ssize_t Connection::readFromFile(){
 
 bool Connection::process(){
     // 该函数处理readBuffer中的数据，并将处理结果写到writeBuffer中
-    // 如果进行处理了，则返回true；如果没有进行处理，则返回false
-
+    // 如果进行处理了，则返回true；如果没有进行处理，则返回false（如果只返回true或false将导致无法继续处理）
     // 以下为测试程序
-    if(readBuffer.readableBytes()<2){
+    /*if(readBuffer.readableBytes()<2){
         // 不足一个报文头，无法处理
         return false;
     }else{
@@ -54,7 +53,14 @@ bool Connection::process(){
             writeBuffer.appendData(message);
             return true;
         }
-    }
+    }*/
+    if(readBuffer.readableBytes()!=0){
+        // 使用移动构造函数实现资源的转移
+        std::vector<char> temp(readBuffer.lookDate(0,readBuffer.readableBytes()));
+        log_debug(std::string(&temp[0],temp.size()));
+        writeBuffer.appendData(temp);
+        return true;
+    }else return false;
 }
 
 ssize_t Connection::writeToFile(){

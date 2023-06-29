@@ -9,7 +9,7 @@ int main(){
     int fd=socket(AF_INET,SOCK_STREAM,0);
     struct sockaddr_in saddr;
     saddr.sin_family=AF_INET;
-    inet_pton(AF_INET,"192.168.186.128",&saddr.sin_addr.s_addr);
+    inet_pton(AF_INET,"127.0.0.1",&saddr.sin_addr.s_addr);
     saddr.sin_port=htons(9090);
     connect(fd,(struct sockaddr*)(&saddr),sizeof(saddr));
     char buf[2048];

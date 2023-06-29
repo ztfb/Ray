@@ -84,17 +84,15 @@ void Buffer::appendData(const std::vector<char>& data){
     }
 }
 
-std::vector<char> Buffer::readDate(int begin,int end){
+std::vector<char> Buffer::lookDate(int begin,int end){
     const char* b=(&buffer[0])+readPos+begin;
     const char* e=(&buffer[0])+readPos+end;
     std::vector<char> data(b,e);
+    // 这里编译器会自动进行优化，将data转为右值引用，实现移动语义（资源的转移）
     return data;
 }
 
-std::vector<char> Buffer::getData(int len){
-    const char* b=(&buffer[0])+readPos;
-    const char* e=(&buffer[0])+readPos+len;
-    std::vector<char> data(b,e);
+void Buffer::abandonData(int len){
+    // 通过移动read指针的方式丢弃数据
     readPos+=len;
-    return data;
 }
