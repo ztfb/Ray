@@ -27,6 +27,10 @@ def getAllResult(data):
 	result=mysqllib.getAllResult(data)
 	return json2obj(result)
 
+# 业务层自己构造sql更新（增删改）语句并传入
+def update(conn,sql):
+	return mysqllib.query(conn,sql)
+
 def insertObj(conn,table,obj):
 	# 根据表名和对象（字典）构造insert语句并执行
 	strlist=['insert into ',table,' (']
