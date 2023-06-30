@@ -2,6 +2,7 @@
 #include "Log.h"
 #include "MySQLPool.h"
 #include "RunPython.h"
+#include "jsoncpp/json/json.h"
 
 static std::shared_ptr<HttpProcess> httpProcess=nullptr;
 static std::mutex mutex;
@@ -60,11 +61,13 @@ bool HttpProcess::process(Connection* conn){
     // 以下是一个python函数调用示例
     /*
     char *ret;
-    PyObject *args=RunPython::instance()->initArgs(2);
+    PyObject *args=RunPython::instance()->initArgs(4);
     // 无论在32位机还是64位机上，指针长度和long保持一致，因此用long传递指针即可
-    RunPython::instance()->buildArgs(args,0,(long)(mysql));
-    RunPython::instance()->buildArgs(args,1,0);
-    RunPython::instance()->callFunc("pmysql_test","test",args,ret);
+    RunPython::instance()->buildArgs(args,0,(long)(mysql)); // 数据库连接
+    RunPython::instance()->buildArgs(args,1,"get"); // 方法类型
+    RunPython::instance()->buildArgs(args,2,"user/login"); // url
+    RunPython::instance()->buildArgs(args,3,"{\"username\":\"test\","\password\":"\123456\"}"); // 参数
+    RunPython::instance()->callFunc("prouter","router",args,ret);
     */
    
     if(conn->readBuffer.readableBytes()!=0){

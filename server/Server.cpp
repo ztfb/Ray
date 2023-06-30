@@ -47,17 +47,16 @@ Server::Server(const std::string& configPath,const std::string& scriptPath){
     // 注意：python运行器只需要载入python路由脚本（prouter），并且给它传递若干参数：
     /*
     MYSQL连接（在调用这个路由函数之前必须获取一个mysql连接）
-    get请求还需要传递url 请求参数；post请求还需要传递url 请求体（json格式）
+    get请求还需要传递url 请求参数(json格式)；post请求还需要传递url 请求体（json格式）
     根据该函数返回值可以确定处理情况（未找到方法404，无访问权限403，内部错误500等）
     以及处理成功200时的处理结果（主要是json响应体）
     */
     // 初始化Python脚本引擎
     RunPython::instance()->init(scriptPath); 
-    // 载入prouter脚本以及getRouter和postRouter路由函数
+    // 载入prouter脚本以及router路由函数
     /*
     RunPython::instance()->loadModule("prouter");
-    RunPython::instance()->loadFunction("prouter","getRouter");
-    RunPython::instance()->loadFunction("prouter","postRouter");
+    RunPython::instance()->loadFunction("prouter","router");
     */
 
     log_info("服务器配置初始化完成...");
