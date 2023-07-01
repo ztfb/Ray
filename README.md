@@ -30,11 +30,17 @@ Python脚本：
 * 该后端框架可以很容易的更换所操作的数据库，实现和其他数据库的连接（只要按照MySQL函数库的规范重新开发一套C++函数库和Python内层接口模块即可）。
 * 该后端框架可以很容易的更换上层协议，只要重写Connection的process方法调用的process方法，以及Python外层接口模块即可（即把HTTP处理器和`prouter`模块更换成其他协议的处理器和处理模块即可）。
 
+Ray的优势：
+
+* C++ 核心服务器的性能良好。
+* 使用Python编写业务逻辑简单快速。
+* 即开即用，无需安装其他的依赖。
+
 ## 项目结构
 
 项目结构主要分为三层：
 
-* 外层：服务器层。数据报经过过滤、转发和简单的解析后，传递给业务层进行处理。
+* 外层：服务器层。数据报经过一定的解析后，传递给业务层进行处理。
 * 中间层：业务层。调用数据库层的功能，处理传递过来的数据，并将结果封装后返回给服务器层。
 * 内层：数据库层。给业务层提供一些可调用的功能。
 
@@ -55,6 +61,10 @@ Python脚本：
 
 ```python
 # 将boost MySQL Python的相关头文件和库文件放在项目中，是为了方便在没有安装过这些环境的PC上进行编译
+-bin				# 一个Ray的demo项目
+ --script			# 业务层Python脚本
+ --config.ini		# 服务器配置文件
+ --server			# 核心服务器（可执行程序）
 -boost				# boost.python开发环境（使用boost.python所需文件）
  --include			# boost.python相关头文件
  --lib				# boost.python相关库文件
@@ -65,9 +75,11 @@ Python脚本：
  --include			# Python开发相关头文件
  --lib				# Python开发相关库文件
 -script				# 预定义的Python模块
+ --mysqllib.so		# C++ MySQL函数动态库
  --pmysql			# 对C++ MySQL函数库进一步封装
  --prouter			# 将HTTP请求路由给相应的函数，并将处理结果返回给HTTP处理器
- --pscript			# 用户编写的业务层代码
+ --pscript			# 编写的业务层demo（实现简单的用户登录、注册、注销和修改功能）
+ --README.md		# 概要说明文件
 -server				# C++核心服务器
  --Buffer			# 自动增长的缓冲区
  --Epoll			# epoll相关函数封装
@@ -111,7 +123,7 @@ Python脚本：
 
 ### 项目启动
 
-将编译后生成的可执行文件`server`，服务器配置文件`config.ini`，C++ MySQL函数库文件`mysqllib.so`放在同一个文件夹下。在同级目录下创建`script`文件夹，将`pmysql`、`prouter`、`pscript`模块都放到该文件夹下。然后在终端中输入`./server`即可启动服务器。
+将编译后生成的可执行文件`server`，服务器配置文件`config.ini`放在同一个文件夹下。在同级目录下创建`script`文件夹，将`pmysql`、`prouter`、`pscript`模块，以及C++ MySQL函数库文件`mysqllib.so`都放到该文件夹下。然后在终端中输入`./server`即可启动服务器。
 
 ```python
 # 如果配置文件与server不在同一目录下，或Python脚本不在server目录的script文件夹下
@@ -121,7 +133,7 @@ Python脚本：
 
 ### 项目发布
 
-将编写好的业务层Python代码直接放到Ray的script文件夹下，然后将整个项目（包括`server`、`mysqllib.so`、`config.ini`、`script`）直接压缩打包即可发布。得到发布压缩包后，先打开压缩包，然后使用上述方法即可启动项目。
+将编写好的业务层Python代码直接放到Ray的script文件夹下，然后将整个项目（包括`server`、`config.ini`、`script`）直接压缩打包即可发布。得到发布压缩包后，先打开压缩包，然后使用上述方法即可启动项目。
 
 ## 暂时未实现的目标
 
