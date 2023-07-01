@@ -54,10 +54,8 @@ Server::Server(const std::string& configPath,const std::string& scriptPath){
     // 初始化Python脚本引擎
     RunPython::instance()->init(scriptPath); 
     // 载入prouter脚本以及router路由函数
-    /*
     RunPython::instance()->loadModule("prouter");
     RunPython::instance()->loadFunction("prouter","router");
-    */
 
     log_info("服务器配置初始化完成...");
     
