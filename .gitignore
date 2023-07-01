@@ -1,6 +1,7 @@
-# 忽略配置文件
+# 忽略配置或缓存文件
 .vscode
 .idea
+__pycache__
 # 忽略server下的build文件夹
 /server/build
 /server/test/build
