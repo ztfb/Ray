@@ -32,7 +32,7 @@ private:
     Buffer readBuffer; // 读缓冲区
     Buffer writeBuffer; // 写缓冲区
     // HTTP请求头中比较重要的信息
-    bool isKeepAlive; // 是否保持长链接
+    bool isKeepAlive; // 是否保持长连接
 };
 
 #endif

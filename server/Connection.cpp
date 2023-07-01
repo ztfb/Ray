@@ -7,8 +7,8 @@ Connection::Connection(int cfd, const std::string& ip,int port){
     this->cfd=cfd;
     this->ip=ip;
     this->port=port;
-    // 默认打开keep-alive
-    isKeepAlive=true;
+    // 默认关闭keep-alive
+    isKeepAlive=false;
 }
 
 Connection::~Connection(){

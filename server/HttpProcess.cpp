@@ -2,7 +2,8 @@
 #include "Log.h"
 #include "MySQLPool.h"
 #include "RunPython.h"
-#include "jsoncpp/json/json.h"
+#include <regex>
+#include <iostream>
 
 static std::shared_ptr<HttpProcess> httpProcess=nullptr;
 static std::mutex mutex;
@@ -70,12 +71,99 @@ bool HttpProcess::process(Connection* conn){
     RunPython::instance()->callFunc("prouter","router",args,ret);
     */
    
-    if(conn->readBuffer.readableBytes()!=0){
+    /*if(conn->readBuffer.readableBytes()!=0){
         // 使用移动构造函数实现资源的转移
         std::vector<char> temp(conn->readBuffer.lookDate(0,conn->readBuffer.readableBytes()));
         conn->readBuffer.abandonData(conn->readBuffer.readableBytes()); // 不要忘记丢弃读出的数据
         log_debug("server:"+std::string(&temp[0],temp.size()));
         conn->writeBuffer.appendData(temp);
         return true;
-    }else return false;
+    }else return false;*/
+    Json::Value parseResult;
+    parseResult["error"]=false;
+    if(httpParser(conn->readBuffer,parseResult)){
+        std::cout<<parseResult<<std::endl;
+        if(parseResult["error"]==true){
+            // HTTP请求存在语法错误，不移交上层，直接返回400错误报文
+        }else if(parseResult["version"]!="1.0"&&parseResult["version"]!="1.1"){
+            // 不支持1.0，1.1以外的HTTP协议版本，不移交上层，直接返回505错误报文
+        }else if(parseResult["method"]!="GET"&&parseResult["method"]!="POST"){
+            // 不支持GET POST以外的方法，不移交上层，直接返回405错误报文
+        }else if(parseResult["content-type"]!="application/json"){
+            // 不支持json格式以外的数据，不移交上层，直接返回406错误报文
+        }else{
+            // 解析成功，交给上层python脚本进行处理
+            if(parseResult["connection"]=="keep-alive")conn->setKeepAlive(true); // 设置长连接
+            // 处理结束，根据处理结果构造HTTP响应报文
+        }
+        return true; // 解析并处理完成，返回true，向客户端发送响应报文
+    }else return false; // 解析失败，报文不完整，等待后面报文到达后继续解析
+}
+
+bool HttpProcess::httpParser(Buffer& readBuffer,Json::Value& parseResult){
+    int currLen=0; // 当前已经解析过的数据的长度
+    std::string currLine; // 当前行内容
+    int state=0; // 当前的解析状态 0：正在解析请求行；1：正在解析请求头
+    while(true){
+        if(readBuffer.readableBytes()<1) return false; // 数据不足，解析失败
+        char c=readBuffer.lookDate(currLen,currLen+1).at(0); // 取出一个字节的数据
+        currLen++;
+        if(c=='\r'){
+            if(readBuffer.readableBytes()<1) return false; // 数据不足，解析失败
+            char cc=readBuffer.lookDate(currLen,currLen+1).at(0); // 取出一个字节的数据
+            if(cc='\n'){// 解析到一个行的末尾
+                currLen++;
+                switch (state){
+                case 0:
+                    state=1; // 下一步需要解析请求头
+                    parseLine(currLine,parseResult);
+                    break;
+                case 1:
+                    parseHead(currLine,parseResult);
+                    if(readBuffer.readableBytes()<2) return false; // 数据不足，解析失败
+                    std::vector<char> temp=readBuffer.lookDate(currLen,currLen+2);
+                    if(temp[0]=='\r'&&temp[1]=='\n'){ // 出现换行，开始解析请求体
+                        currLen+=2;
+                        // 如果content-length不存在，则返回空字符串
+                        std::string str=parseResult["content-length"].asString();
+                        int bodyLen=0;
+                        if(!str.empty())bodyLen=std::stoi(str);
+                        if(readBuffer.readableBytes()<bodyLen) return false; // 数据不足，解析失败
+                        std::vector<char> body=readBuffer.lookDate(currLen,currLen+bodyLen);
+                        currLen+=bodyLen;
+                        readBuffer.abandonData(currLen); // 丢弃掉已经处理过的数据
+                        parseResult["body"]=std::string(body.begin(),body.end());
+                        return true; // 解析成功
+                    }
+                    break;
+                }
+                currLine=""; // 解析完当前行后清空行
+            }else currLine.push_back(c);
+        }else currLine.push_back(c);
+    }
+}
+
+void HttpProcess::parseLine(const std::string& line,Json::Value& parseResult){
+    std::regex patten("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$"); // 请求行的正则表达式
+    std::smatch subMatch;
+    if(regex_match(line, subMatch, patten)){   
+        parseResult["method"]=std::string(subMatch[1]); // 请求方法
+        parseResult["url"]=std::string(subMatch[2]); // url
+        parseResult["version"]=std::string(subMatch[3]); // HTTP版本
+    }else parseResult["error"]=true;; // 匹配失败，存在语法错误，设置parseResult的错误标志
+}
+
+void HttpProcess::parseHead(const std::string& line,Json::Value& parseResult){
+    std::regex patten("^([^:]*) ?: ?(.*)$");
+    std::smatch subMatch;
+    if(regex_match(line, subMatch, patten)){
+        std::string key=subMatch[1];
+        {
+            // 将key的单词的首字母统一转小写
+            if(key[0]>='A'&&key[0]<='Z')key[0]=key[0]-'A'+'a';
+            int index=1;for(;index<key.size();index++)if(key[index]=='-')break;
+            if(index+1<key.size()&&key[index+1]>='A'&&key[index+1]<='Z')key[index+1]=key[index+1]-'A'+'a';
+        }
+        parseResult[key]=std::string(subMatch[2]);
+    }else parseResult["error"]=true;; // 匹配失败，存在语法错误，设置parseResult的错误标志
 }
